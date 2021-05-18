@@ -3,6 +3,7 @@ import WCluster from './src/WCluster.mjs'
 
 
 async function testCluster() {
+    let mode = 'k-medoids'
 
     let mat = [
         [40, 50, 60],
@@ -13,7 +14,7 @@ async function testCluster() {
     console.log('mat', mat)
     // => mat [ [ 40, 50, 60 ], [ 50, 70, 60 ], [ 80, 70, 90 ], [ 50, 60, 80 ] ]
 
-    let resMat = await WCluster.cluster(mat, { kNumber: 2, nCompNIPALS: 2 })
+    let resMat = await WCluster.cluster(mat, { mode, kNumber: 2, nCompNIPALS: 2 })
     console.log(JSON.stringify(resMat, null, 2))
     // => {
     //   "keys": null,
@@ -57,7 +58,7 @@ async function testCluster() {
     //     { name: 'Fawcett', a: 50, b: 60, c: 80 }
     // ]
 
-    let resLtdt = await WCluster.cluster(ltdt, { kNumber: 2, nCompNIPALS: 2 })
+    let resLtdt = await WCluster.cluster(ltdt, { mode, kNumber: 2, nCompNIPALS: 2 })
     console.log(JSON.stringify(resLtdt, null, 2))
     // => {
     //   "keys": [ "a", "b", "c" ],

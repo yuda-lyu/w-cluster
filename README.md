@@ -1,5 +1,5 @@
 # w-cluster
-A tool for data PCA and cluster.
+A tool for data PCA(Principle Component Analysis) and cluster(K-Means & K-Medoids).
 
 ![language](https://img.shields.io/badge/language-JavaScript-orange.svg) 
 [![npm version](http://img.shields.io/npm/v/w-cluster.svg?style=flat)](https://npmjs.org/package/w-cluster) 
@@ -19,7 +19,7 @@ To view documentation or get support, visit [docs](https://yuda-lyu.github.io/w-
 npm i w-cluster
 ```
 
-#### Example for PCA:
+#### Example for PCA(Principle Component Analysis):
 > **Link:** [[dev source code](https://github.com/yuda-lyu/w-cluster/blob/master/g-PCA.mjs)]
 ```alias
 
@@ -56,6 +56,7 @@ testPCA()
 ```alias
 
 async function testCluster() {
+    let mode = 'k-medoids'
 
     let mat = [
         [40, 50, 60],
@@ -66,7 +67,7 @@ async function testCluster() {
     console.log('mat', mat)
     // => mat [ [ 40, 50, 60 ], [ 50, 70, 60 ], [ 80, 70, 90 ], [ 50, 60, 80 ] ]
 
-    let resMat = await WCluster.cluster(mat, { kNumber: 2, nCompNIPALS: 2 })
+    let resMat = await WCluster.cluster(mat, { mode, kNumber: 2, nCompNIPALS: 2 })
     console.log(JSON.stringify(resMat, null, 2))
     // => {
     //   "keys": null,
@@ -110,7 +111,7 @@ async function testCluster() {
     //     { name: 'Fawcett', a: 50, b: 60, c: 80 }
     // ]
 
-    let resLtdt = await WCluster.cluster(ltdt, { kNumber: 2, nCompNIPALS: 2 })
+    let resLtdt = await WCluster.cluster(ltdt, { mode, kNumber: 2, nCompNIPALS: 2 })
     console.log(JSON.stringify(resLtdt, null, 2))
     // => {
     //   "keys": [ "a", "b", "c" ],
@@ -161,7 +162,7 @@ testCluster()
 
 [Necessary] Add script for w-cluster.
 ```alias
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.0/dist/w-cluster.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.1/dist/w-cluster.umd.js"></script>
 ```
 
 > **PCA:** [ex-PCA.html](https://yuda-lyu.github.io/w-cluster/examples/ex-PCA.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-PCA.html)]
