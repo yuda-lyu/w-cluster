@@ -1,0 +1,41 @@
+{
+  "name": "w-cluster",
+  "version": "1.0.0",
+  "description": "A tool for data PCA and cluster.",
+  "main": "dist/w-cluster.umd.js",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "k-medoids": "^1.0.6",
+    "ml-kmeans": "^5.0.0",
+    "ml-pca": "^4.0.2",
+    "wsemi": "^1.5.77"
+  },
+  "devDependencies": {
+    "w-package-tools": "^1.0.55"
+  },
+  "scripts": {
+    "test": "mocha --parallel --timeout 60000 --experimental-modules --es-module-specifier-resolution=node",
+    "deploy": "gh-pages -d docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuda-lyu/w-cluster.git"
+  },
+  "keywords": [
+    "package",
+    "tool",
+    "PCA",
+    "cluster",
+    "k-medoids",
+    "k-means",
+    "WebWorkers",
+    "nodejs",
+    "browser"
+  ],
+  "author": "yuda-lyu(semisphere)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yuda-lyu/w-cluster/issues"
+  },
+  "homepage": "https://github.com/yuda-lyu/w-cluster#readme"
+}
