@@ -3,10 +3,16 @@ import get from 'lodash/get'
 import size from 'lodash/size'
 import isNumber from 'lodash/isNumber'
 import isBoolean from 'lodash/isBoolean'
+import isearr from 'wsemi/src/isearr.mjs'
 import { PCA } from 'ml-pca'
 
 
 function WPCAMat(data, opt = {}) {
+
+    //check
+    if (!isearr(data)) {
+        throw new Error('data is not eff. array')
+    }
 
     //scale
     let scale = get(opt, 'scale')
@@ -22,6 +28,11 @@ function WPCAMat(data, opt = {}) {
 
     //n
     let n = size(get(data, 0, []))
+
+    //check
+    if (n === 0) {
+        throw new Error('invalid dimension of data')
+    }
 
     //check
     if (nCompNIPALS > n) {

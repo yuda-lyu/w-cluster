@@ -162,7 +162,13 @@ testCluster()
 
 [Necessary] Add script for w-cluster.
 ```alias
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.1/dist/w-cluster.umd.js"></script>
+
+<!-- for basic -->
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.2/dist/w-json-stream.umd.js"></script>
+
+<!-- for web workers -->
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.2/dist/w-json-stream.ww.umd.js"></script>
+
 ```
 
 > **PCA:** [ex-PCA.html](https://yuda-lyu.github.io/w-cluster/examples/ex-PCA.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-PCA.html)]
