@@ -158,16 +158,16 @@ testCluster()
 ```
 
 ### In a browser(UMD module):
-> **Note:** w-cluster is not dependent on any package.
+> **Note:** w-cluster does not dependent on any package.
 
 [Necessary] Add script for w-cluster.
 ```alias
 
 <!-- for basic -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.2/dist/w-json-stream.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.3/dist/w-json-stream.umd.js"></script>
 
 <!-- for web workers -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.2/dist/w-json-stream.ww.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.3/dist/w-json-stream.wk.umd.js"></script>
 
 ```
 

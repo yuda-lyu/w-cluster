@@ -1,4 +1,5 @@
-import WCluster from './src/WCluster.mjs'
+// import WCluster from './src/WCluster.mjs'
+import WCluster from './dist/w-cluster.wk.umd.js'
 
 
 async function testPCA() {
@@ -27,5 +28,5 @@ testPCA()
         console.log(err)
     })
 
-//node --experimental-modules --es-module-specifier-resolution=node g-PCA.mjs
+//node --experimental-modules --es-module-specifier-resolution=node g-PCA-nodeworker.mjs
 

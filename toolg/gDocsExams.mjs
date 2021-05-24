@@ -16,7 +16,7 @@ function main() {
 
     //url
     let url = `https://cdn.jsdelivr.net/npm/w-cluster@${pks.version}/dist/w-cluster.umd.js`
-    let urlww = `https://cdn.jsdelivr.net/npm/w-cluster@${pks.version}/dist/w-cluster.ww.umd.js`
+    let urlww = `https://cdn.jsdelivr.net/npm/w-cluster@${pks.version}/dist/w-cluster.wk.umd.js`
 
     //mkdirSync
     if (!fs.existsSync(fdTar)) {
@@ -38,7 +38,7 @@ function main() {
         let r
         r = `../dist/w-cluster.umd.js`
         c = c.replace(r, url)
-        r = `../dist/w-cluster.ww.umd.js`
+        r = `../dist/w-cluster.wk.umd.js`
         c = c.replace(r, urlww)
 
         //write
