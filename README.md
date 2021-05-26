@@ -177,4 +177,4 @@ testCluster()
 
 > **cluster for k-medoids:** [ex-cluster-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-k-medoids.html)]
 
-> **cluster for k-medoids with web worker[WebWorkers(from blob) does not support IE11]:** [ex-cluster-webworker-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-webworker-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-webworker-k-medoids.html)]
+> **cluster for k-medoids with web worker:** [ex-cluster-webworker-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-webworker-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-webworker-k-medoids.html)] * WebWorkers(from blob) does not support IE11.
