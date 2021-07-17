@@ -14,7 +14,7 @@ async function rp() {
         fdSrc,
         fdTar,
         nameDistType: 'kebabCase',
-        bNodePolyfill: true,
+        // bNodePolyfill: true,
         // bMinify: false,
         globals: {
         },
@@ -28,9 +28,9 @@ async function rp() {
     await rollupWorker({
         name: 'WCluster', //原模組名稱, 將來會掛於winodw下
         type: 'object', //原模組輸出為物件
-        funNames: ['PCA', 'cluster'], //只提供stringify、parse, stringifyByStream、parseByStream太慢不實用, createParseStream,createStringifyStream不能運行於web worker內因會被編譯成async function
+        funNames: ['PCA', 'cluster'],
         // target: 'old', //不支援IE11
-        bNodePolyfill: true,
+        // bNodePolyfill: true,
         // bMinify: false,
         // bSourcemap: true, //rollupWebWorker不提供sourcemap
         execObjectFunsByInstance: true, //各函式使用獨立實體執行

@@ -88,7 +88,19 @@
                                             }
                                         },
                                     })
-
+                                }
+                                let bLarge = false
+                                if(bLarge){
+                                    for(let g=0;g<res.gmat.length;g++){
+                                        let vs=[]
+                                        for(let j=0;j<res.gmat[g].length;j++){
+                                            vs.push([res.gmat[g][j][0],res.gmat[g][j][1]])
+                                        }
+                                        ds.push({
+                                            name:'group'+(g+1),
+                                            data:vs,
+                                        })
+                                    }
                                 }
                                 console.log('ds',ds)
                                 
