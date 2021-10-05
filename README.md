@@ -164,10 +164,10 @@ testCluster()
 ```alias
 
 <!-- for basic -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.3/dist/w-cluster.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.4/dist/w-cluster.umd.js"></script>
 
 <!-- for web workers -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.3/dist/w-cluster.wk.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.4/dist/w-cluster.wk.umd.js"></script>
 
 ```
 
