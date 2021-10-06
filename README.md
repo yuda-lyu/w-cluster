@@ -3,7 +3,6 @@ A tool for data PCA(Principle Component Analysis) and cluster(K-Means & K-Medoid
 
 ![language](https://img.shields.io/badge/language-JavaScript-orange.svg) 
 [![npm version](http://img.shields.io/npm/v/w-cluster.svg?style=flat)](https://npmjs.org/package/w-cluster) 
-[![Build Status](https://travis-ci.org/yuda-lyu/w-cluster.svg?branch=master)](https://travis-ci.org/yuda-lyu/w-cluster) 
 [![license](https://img.shields.io/npm/l/w-cluster.svg?style=flat)](https://npmjs.org/package/w-cluster) 
 [![gzip file size](http://img.badgesize.io/yuda-lyu/w-cluster/master/dist/w-cluster.umd.js.svg?compression=gzip)](https://github.com/yuda-lyu/w-cluster)
 [![npm download](https://img.shields.io/npm/dt/w-cluster.svg)](https://npmjs.org/package/w-cluster) 
