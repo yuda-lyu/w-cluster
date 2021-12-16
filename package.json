@@ -1,6 +1,6 @@
 {
   "name": "w-cluster",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A tool for data PCA(Principle Component Analysis) and cluster(K-Means & K-Medoids).",
   "main": "dist/w-cluster.umd.js",
   "dependencies": {
@@ -8,7 +8,7 @@
     "k-medoids": "^1.0.6",
     "ml-kmeans": "^5.0.0",
     "ml-pca": "^4.0.2",
-    "wsemi": "^1.6.19"
+    "wsemi": "^1.6.34"
   },
   "devDependencies": {
     "w-package-tools": "^1.0.59"
