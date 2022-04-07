@@ -1,7 +1,6 @@
 import path from 'path'
 import rollupFiles from 'w-package-tools/src/rollupFiles.mjs'
 import rollupWorker from 'w-package-tools/src/rollupWorker.mjs'
-import rollupWorkerCore from 'w-package-tools/src/rollupWorkerCore.mjs'
 
 
 let fdSrc = './src'
