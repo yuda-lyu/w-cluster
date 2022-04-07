@@ -33,7 +33,7 @@ async function rp() {
         // bNodePolyfill: true,
         // bMinify: false,
         // bSourcemap: true, //rollupWebWorker不提供sourcemap
-        execObjectFunsByInstance: true, //各函式使用獨立實體執行
+        // execObjectFunsByInstance: true, //各函式使用獨立實體執行
         fpSrc: path.resolve(fdSrc, 'WCluster.mjs'), //原始檔案路徑
         fpTar: path.resolve(fdTar, 'w-cluster.wk.umd.js'), //檔案輸出路徑
         hookNameDist: () => 'w-cluster',
