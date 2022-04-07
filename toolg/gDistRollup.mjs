@@ -10,21 +10,21 @@ let fdTar = './dist'
 
 async function rp() {
 
-    // await rollupFiles({ //rollupFiles預設會clean folder
-    //     fns: 'WCluster.mjs',
-    //     fdSrc,
-    //     fdTar,
-    //     nameDistType: 'kebabCase',
-    //     // bNodePolyfill: true,
-    //     // bMinify: false,
-    //     globals: {
-    //     },
-    //     external: [
-    //     ],
-    // })
-    //     .catch((err) => {
-    //         console.log(err)
-    //     })
+    await rollupFiles({ //rollupFiles預設會clean folder
+        fns: 'WCluster.mjs',
+        fdSrc,
+        fdTar,
+        nameDistType: 'kebabCase',
+        // bNodePolyfill: true,
+        // bMinify: false,
+        globals: {
+        },
+        external: [
+        ],
+    })
+        .catch((err) => {
+            console.log(err)
+        })
 
     await rollupWorker({
         name: 'WCluster', //原模組名稱, 將來會掛於winodw下
