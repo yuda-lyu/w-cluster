@@ -59,18 +59,14 @@ function WClusterCore(data, opt = {}) {
     if (!isnum(kNumber)) {
         kNumber = 2
     }
-    else {
-        kNumber = cint(kNumber)
-    }
+    kNumber = cint(kNumber)
 
     //nCompNIPALS
     let nCompNIPALS = get(opt, 'nCompNIPALS')
     if (!isnum(nCompNIPALS)) {
         nCompNIPALS = 2
     }
-    else {
-        nCompNIPALS = cint(nCompNIPALS)
-    }
+    nCompNIPALS = cint(nCompNIPALS)
 
     //mode, 由WDataCluster檢核與給予預設值
     let mode = get(opt, 'mode')
@@ -136,9 +132,9 @@ function WClusterCore(data, opt = {}) {
 
     return {
         keys: ks,
-        ginds,
-        gltdt,
-        gmat,
+        ginds, //各群所屬樣本指標
+        gmat, //各群所屬主成份分析轉換後樣本數據
+        gltdt, //各群所屬原始樣本數據
     }
 }
 

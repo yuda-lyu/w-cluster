@@ -1,7 +1,6 @@
 {
   "name": "w-cluster",
   "version": "1.0.9",
-  "description": "A tool for data PCA(Principle Component Analysis) and cluster(K-Means & K-Medoids).",
   "main": "dist/w-cluster.umd.js",
   "dependencies": {
     "lodash": "^4.17.21",
@@ -33,9 +32,5 @@
     "browser"
   ],
   "author": "yuda-lyu(semisphere)",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/yuda-lyu/w-cluster/issues"
-  },
-  "homepage": "https://github.com/yuda-lyu/w-cluster#readme"
+  "license": "MIT"
 }

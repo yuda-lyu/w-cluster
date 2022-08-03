@@ -43,11 +43,12 @@ function kMedoids(data, kNumber) {
 
 function kMeans(data, kNumber) {
 
-
+    //kmeans
     let r = kmeans(data, kNumber)
-    //k         [ 0, 1, 2, 3 ]
+    //k:        [ 0, 1, 2, 3 ]
     //clusters: [ 0, 0, 1, 0 ]
 
+    //gs
     let gs = {}
     each(r.clusters, (v, k) => {
         if (!gs[v]) {
@@ -93,7 +94,7 @@ function WClusterMat(data, opt = {}) {
         rs = kMeans(data, kNumber)
     }
     else {
-        throw new Error('invalid mode')
+        throw new Error(`invalid mode[${mode}]`)
     }
 
     return rs
