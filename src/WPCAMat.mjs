@@ -18,7 +18,7 @@ function WPCAMat(data, opt = {}) {
     //scale
     let scale = get(opt, 'scale')
     if (!isbol(scale)) {
-        scale = true //true: divide by the standard deviation
+        scale = false //true: divide by the standard deviation
     }
 
     //nCompNIPALS
@@ -44,15 +44,35 @@ function WPCAMat(data, opt = {}) {
     //pca
     let method = 'NIPALS' //SVD NIPALS
     let pca = new PCA(data, { method, scale, nCompNIPALS })
+    // console.log('pca', pca)
 
-    //transform
+    // //getEigenvalues
+    // let eiva = pca.getEigenvalues()
+    // // console.log('eiva', eiva)
+
+    // //getEigenvectors
+    // let eivt = pca.getEigenvectors()
+    // // console.log('eivt', eivt)
+
+    // //getCumulativeVariance
+    // let cmv = pca.getCumulativeVariance()
+    // // console.log('cmv', cmv)
+
+    //predict
     let tf = pca.predict(data)
-
-    //inverse_transform
-    let itf = pca.invert(tf)
+    // console.log('tf', tf)
 
     //res
-    let res = itf.toJSON()
+    let res = tf.toJSON()
+    // console.log('res', res)
+
+    // //invert
+    // let itf = pca.invert(tf)
+    // console.log('itf', itf)
+
+    // //res
+    // let res = itf.toJSON()
+    // // console.log('res', res)
 
     return res
 }
