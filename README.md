@@ -16,11 +16,9 @@ To view some examples for more understanding, visit examples:
 
 > **PCA:** [ex-PCA.html](https://yuda-lyu.github.io/w-cluster/examples/ex-PCA.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-PCA.html)]
 
-> **cluster for k-means:** [ex-cluster-k-means.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-k-means.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-k-means.html)]
+> **cluster:** [ex-cluster.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster.html)]
 
-> **cluster for k-medoids:** [ex-cluster-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-k-medoids.html)]
-
-> **cluster for k-medoids with web worker:** [ex-cluster-webworker-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-webworker-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-webworker-k-medoids.html)] * WebWorkers(from blob) does not support IE11.
+> **cluster with web worker:** [ex-cluster-webworker.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-webworker.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-webworker.html)] * WebWorkers(from blob) does not support IE11.
 
 ## Installation
 ### Using npm(ES6 module):
@@ -166,9 +164,9 @@ testCluster()
 ```alias
 
 <!-- for basic -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.10/dist/w-cluster.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.11/dist/w-cluster.umd.js"></script>
 
 <!-- for web workers -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.10/dist/w-cluster.wk.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.11/dist/w-cluster.wk.umd.js"></script>
 
 ```

@@ -3,7 +3,7 @@
 
     <head>
         <meta http-equiv="content-type" content="text/html charset=UTF-8" />
-        <title>w-cluster cluster for k-medoids with web worker</title>
+        <title>cluster with web worker</title>
 
         <!-- @babel/polyfill已廢棄 -->
         <script nomodule src="https://cdn.jsdelivr.net/npm/@babel/polyfill@7.12.1/dist/polyfill.min.js"></script>
@@ -25,6 +25,11 @@
         <div style="margin-bottom:5px; color:#f26; font-size:0.9rem;">WebWorkers(from blob) does not support IE11</div>
         
         <div style="display:flex;">
+            <div style="margin-right:5px;">method:</div>
+            <select id="method" style="width:100px; margin-right:15px;" onchange="cls()">
+                <option value="k-means" selected>k-means</option>
+                <option value="k-medoids">k-medoids</option>
+            </select>
             <div style="margin-right:5px;">kNumber:</div>
             <select id="kNumber" style="width:50px; margin-right:15px;" onchange="cls()">
                 <option value="2">2</option>
@@ -54,7 +59,10 @@
             console.log(WCluster)
             
             function cls(){
-            
+
+                let method = wsemi.cint(document.querySelector('#method option:checked').value)
+                console.log('method',method)
+
                 let kNumber = wsemi.cint(document.querySelector('#kNumber option:checked').value)
                 console.log('kNumber',kNumber)
 
@@ -66,7 +74,7 @@
                 wsemi.delay(100)
                     .then(function (){
         
-                        WCluster.cluster(dataIris, { kNumber: kNumber, nCompNIPALS: nCompNIPALS, mode: 'k-medoids' })
+                        WCluster.cluster(dataIris, { kNumber: kNumber, nCompNIPALS: nCompNIPALS, mode: method })
                             .then(function(res){
                                 console.log('res',res)
                 
