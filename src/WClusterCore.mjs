@@ -1,6 +1,7 @@
 import get from 'lodash/get'
 import each from 'lodash/each'
 import size from 'lodash/size'
+import take from 'lodash/take'
 import map from 'lodash/map'
 import values from 'lodash/values'
 import dtpick from 'wsemi/src/dtpick.mjs'
@@ -67,6 +68,7 @@ function WClusterCore(data, opt = {}) {
         nCompNIPALS = 2
     }
     nCompNIPALS = cint(nCompNIPALS)
+    console.log('nCompNIPALS', nCompNIPALS)
 
     //mode, 由WDataCluster檢核與給予預設值
     let mode = get(opt, 'mode')
@@ -112,6 +114,13 @@ function WClusterCore(data, opt = {}) {
 
     //WPCAMat
     let pcad = WPCAMat(mat, { nCompNIPALS })
+
+    //保留維度
+    pcad = map(pcad, (v) => {
+        v = take(v, nCompNIPALS)
+        return v
+    })
+    // console.log('pcad', pcad)
 
     //WClusterMat
     let ginds = WClusterMat(pcad, { kNumber, mode })

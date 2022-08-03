@@ -11,6 +11,17 @@ A tool for data PCA(Principle Component Analysis) and cluster(K-Means & K-Medoid
 ## Documentation
 To view documentation or get support, visit [docs](https://yuda-lyu.github.io/w-cluster/global.html).
 
+## Example
+To view some examples for more understanding, visit examples:
+
+> **PCA:** [ex-PCA.html](https://yuda-lyu.github.io/w-cluster/examples/ex-PCA.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-PCA.html)]
+
+> **cluster for k-means:** [ex-cluster-k-means.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-k-means.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-k-means.html)]
+
+> **cluster for k-medoids:** [ex-cluster-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-k-medoids.html)]
+
+> **cluster for k-medoids with web worker:** [ex-cluster-webworker-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-webworker-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-webworker-k-medoids.html)] * WebWorkers(from blob) does not support IE11.
+
 ## Installation
 ### Using npm(ES6 module):
 > **Note:** w-cluster is mainly dependent on `ml-pca`, `ml-kmeans` and `k-medoids`.
@@ -76,12 +87,12 @@ async function testCluster() {
     //   ],
     //   "gmat": [
     //     [
-    //       [77.39502404588043, 70.65388036857387, 91.60517102143689]
+    //       [ 77.39502404588043, 70.65388036857387 ]
     //     ],
     //     [
-    //       [ 36.76572825085965, 50.81184119955175, 61.992939427698765 ],
-    //       [ 50.520478881706346, 69.86935352609807, 59.679283942385844],
-    //       [ 55.318768821553576, 58.66492490577632, 76.7226056084785 ]
+    //       [ 36.76572825085965, 50.81184119955175 ],
+    //       [ 50.520478881706346, 69.86935352609807 ],
+    //       [ 55.318768821553576, 58.66492490577632 ]
     //     ]
     //   ],
     //   "gltdt": [
@@ -120,12 +131,12 @@ async function testCluster() {
     //   ],
     //   "gmat": [
     //     [
-    //       [ 77.39502404588043, 70.65388036857387, 91.60517102143689 ]
+    //       [ 77.39502404588043, 70.65388036857387 ]
     //     ],
     //     [
-    //       [ 36.76572825085965, 50.81184119955175, 61.992939427698765 ],
-    //       [ 50.520478881706346, 69.86935352609807, 59.679283942385844 ],
-    //       [ 55.318768821553576, 58.66492490577632, 76.7226056084785 ]
+    //       [ 36.76572825085965, 50.81184119955175 ],
+    //       [ 50.520478881706346, 69.86935352609807 ],
+    //       [ 55.318768821553576, 58.66492490577632 ]
     //     ]
     //   ],
     //   "gltdt": [
@@ -155,17 +166,9 @@ testCluster()
 ```alias
 
 <!-- for basic -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.9/dist/w-cluster.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.10/dist/w-cluster.umd.js"></script>
 
 <!-- for web workers -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.9/dist/w-cluster.wk.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.10/dist/w-cluster.wk.umd.js"></script>
 
 ```
-
-> **PCA:** [ex-PCA.html](https://yuda-lyu.github.io/w-cluster/examples/ex-PCA.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-PCA.html)]
-
-> **cluster for k-means:** [ex-cluster-k-means.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-k-means.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-k-means.html)]
-
-> **cluster for k-medoids:** [ex-cluster-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-k-medoids.html)]
-
-> **cluster for k-medoids with web worker:** [ex-cluster-webworker-k-medoids.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-webworker-k-medoids.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-webworker-k-medoids.html)] * WebWorkers(from blob) does not support IE11.
