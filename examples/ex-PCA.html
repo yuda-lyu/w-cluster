@@ -30,7 +30,6 @@
         </div>
         
         <pre id="message"></pre>
-        <pre id="error"></pre>
 
         <script>
 
@@ -38,6 +37,8 @@
             console.log(WCluster)
             
             function cls(){
+
+                document.querySelector('#message').innerHTML = 'analysing...'
             
                 let nCompNIPALS = wsemi.cint(document.querySelector('#nCompNIPALS option:checked').value)
                 console.log('nCompNIPALS',nCompNIPALS)
@@ -53,12 +54,10 @@
                     .then(function(res){
                         console.log(res)
                         document.querySelector('#message').innerHTML = JSON.stringify(res, null, 2)
-                        document.querySelector('#error').innerHTML = ''
                     })
                     .catch(function(err){
                         console.log(err)
-                        document.querySelector('#message').innerHTML = 'done'
-                        document.querySelector('#error').innerHTML = JSON.stringify(err.toString(), null, 2)
+                        document.querySelector('#message').innerHTML = JSON.stringify(err.toString(), null, 2)
                     })
                 
             }

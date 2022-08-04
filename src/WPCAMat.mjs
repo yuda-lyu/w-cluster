@@ -18,7 +18,7 @@ function WPCAMat(data, opt = {}) {
     //scale
     let scale = get(opt, 'scale')
     if (!isbol(scale)) {
-        scale = false //true: divide by the standard deviation
+        scale = true //true: divide by the standard deviation
     }
 
     //nCompNIPALS
