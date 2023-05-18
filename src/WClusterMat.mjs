@@ -6,7 +6,7 @@ import values from 'lodash/values'
 import isnum from 'wsemi/src/isnum.mjs'
 import cint from 'wsemi/src/cint.mjs'
 import kmeds from 'k-medoids'
-import kmeans from 'ml-kmeans'
+import { kmeans } from 'ml-kmeans'
 
 
 function kMedoids(data, kNumber) {
