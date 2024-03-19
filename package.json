@@ -1,9 +1,9 @@
 {
   "name": "w-cluster",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "main": "dist/w-cluster.umd.js",
   "dependencies": {
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "k-medoids": "^1.0.7",
     "ml-kmeans": "^6.0.0",
     "ml-pca": "^4.1.1",
