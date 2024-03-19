@@ -1,16 +1,16 @@
 {
   "name": "w-cluster",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "main": "dist/w-cluster.umd.js",
   "dependencies": {
     "lodash": "^4.17.21",
-    "k-medoids": "^1.0.6",
+    "k-medoids": "^1.0.7",
     "ml-kmeans": "^6.0.0",
     "ml-pca": "^4.1.1",
-    "wsemi": "^1.7.2"
+    "wsemi": "^1.7.47"
   },
   "devDependencies": {
-    "w-package-tools": "^1.0.69"
+    "w-package-tools": "^1.0.73"
   },
   "scripts": {
     "test": "mocha --parallel --timeout 60000 --experimental-modules --es-module-specifier-resolution=node",

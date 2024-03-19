@@ -6,6 +6,7 @@ A tool for data PCA(Principle Component Analysis) and cluster(K-Means & K-Medoid
 [![license](https://img.shields.io/npm/l/w-cluster.svg?style=flat)](https://npmjs.org/package/w-cluster) 
 [![gzip file size](http://img.badgesize.io/yuda-lyu/w-cluster/master/dist/w-cluster.umd.js.svg?compression=gzip)](https://github.com/yuda-lyu/w-cluster)
 [![npm download](https://img.shields.io/npm/dt/w-cluster.svg)](https://npmjs.org/package/w-cluster) 
+[![npm download](https://img.shields.io/npm/dm/w-cluster.svg)](https://npmjs.org/package/w-cluster) 
 [![jsdelivr download](https://img.shields.io/jsdelivr/npm/hm/w-cluster.svg)](https://www.jsdelivr.com/package/npm/w-cluster)
 
 ## Documentation
@@ -278,9 +279,9 @@ testCluster()
 ```alias
 
 <!-- for basic -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.17/dist/w-cluster.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.18/dist/w-cluster.umd.js"></script>
 
 <!-- for web workers -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.17/dist/w-cluster.wk.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.18/dist/w-cluster.wk.umd.js"></script>
 
 ```
