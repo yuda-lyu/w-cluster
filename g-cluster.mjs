@@ -171,4 +171,4 @@ testCluster()
         console.log(err)
     })
 
-//node --experimental-modules --es-module-specifier-resolution=node g-cluster.mjs
+//node g-cluster.mjs

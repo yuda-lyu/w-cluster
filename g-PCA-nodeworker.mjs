@@ -64,4 +64,4 @@ testPCA()
         console.log(err)
     })
 
-//node --experimental-modules --es-module-specifier-resolution=node g-PCA-nodeworker.mjs
+//node g-PCA-nodeworker.mjs

@@ -4,7 +4,6 @@ A tool for data PCA(Principle Component Analysis) and cluster(K-Means & K-Medoid
 ![language](https://img.shields.io/badge/language-JavaScript-orange.svg) 
 [![npm version](http://img.shields.io/npm/v/w-cluster.svg?style=flat)](https://npmjs.org/package/w-cluster) 
 [![license](https://img.shields.io/npm/l/w-cluster.svg?style=flat)](https://npmjs.org/package/w-cluster) 
-[![gzip file size](http://img.badgesize.io/yuda-lyu/w-cluster/master/dist/w-cluster.umd.js.svg?compression=gzip)](https://github.com/yuda-lyu/w-cluster)
 [![npm download](https://img.shields.io/npm/dt/w-cluster.svg)](https://npmjs.org/package/w-cluster) 
 [![npm download](https://img.shields.io/npm/dm/w-cluster.svg)](https://npmjs.org/package/w-cluster) 
 [![jsdelivr download](https://img.shields.io/jsdelivr/npm/hm/w-cluster.svg)](https://www.jsdelivr.com/package/npm/w-cluster)
@@ -22,8 +21,8 @@ To view some examples for more understanding, visit examples:
 > **cluster with web worker:** [ex-cluster-webworker.html](https://yuda-lyu.github.io/w-cluster/examples/ex-cluster-webworker.html) [[source code](https://github.com/yuda-lyu/w-cluster/blob/master/docs/examples/ex-cluster-webworker.html)] * WebWorkers(from blob) does not support IE11.
 
 ## Installation
+
 ### Using npm(ES6 module):
-> **Note:** w-cluster is mainly dependent on `ml-pca`, `ml-kmeans` and `k-medoids`.
 ```alias
 npm i w-cluster
 ```
@@ -273,9 +272,8 @@ testCluster()
 ```
 
 ### In a browser(UMD module):
-> **Note:** w-cluster does not dependent on any package.
 
-[Necessary] Add script for w-cluster.
+Add script for w-cluster.
 ```alias
 
 <!-- for basic -->
