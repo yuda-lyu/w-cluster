@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>k-medoids/pammedsil.mjs - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="DenseMatrix.html">DenseMatrix</a></li><li><a href="DistancePair.html">DistancePair</a></li><li><a href="LowerTriangle.html">LowerTriangle</a></li><li><a href="Rec.html">Rec</a></li><li><a href="Reco.html">Reco</a></li></ul><h3>Global</h3><ul><li><a href="global.html#PCA">PCA</a></li><li><a href="global.html#WCluster">WCluster</a></li><li><a href="global.html#alternating">alternating</a></li><li><a href="global.html#arrayAdapter">arrayAdapter</a></li><li><a href="global.html#assign_nearest">assign_nearest</a></li><li><a href="global.html#choose_medoid_within_partition">choose_medoid_within_partition</a></li><li><a href="global.html#cluster">cluster</a></li><li><a href="global.html#do_swap">do_swap</a></li><li><a href="global.html#do_swap_k2">do_swap_k2</a></li><li><a href="global.html#dynmsc">dynmsc</a></li><li><a href="global.html#fastermsc">fastermsc</a></li><li><a href="global.html#fastermsc_k2">fastermsc_k2</a></li><li><a href="global.html#fasterpam">fasterpam</a></li><li><a href="global.html#fastmsc">fastmsc</a></li><li><a href="global.html#fastmsc_k2">fastmsc_k2</a></li><li><a href="global.html#fastpam1">fastpam1</a></li><li><a href="global.html#find_best_swap">find_best_swap</a></li><li><a href="global.html#find_best_swap_k2">find_best_swap_k2</a></li><li><a href="global.html#find_best_swap_pam">find_best_swap_pam</a></li><li><a href="global.html#find_best_swap_pammedsil">find_best_swap_pammedsil</a></li><li><a href="global.html#find_best_swap_pammedsil_k2">find_best_swap_pammedsil_k2</a></li><li><a href="global.html#find_max">find_max</a></li><li><a href="global.html#find_min">find_min</a></li><li><a href="global.html#first_k">first_k</a></li><li><a href="global.html#initial_assignment">initial_assignment</a></li><li><a href="global.html#initial_assignment_k2">initial_assignment_k2</a></li><li><a href="global.html#medoid_silhouette">medoid_silhouette</a></li><li><a href="global.html#pam">pam</a></li><li><a href="global.html#pam_build">pam_build</a></li><li><a href="global.html#pam_build_initialize">pam_build_initialize</a></li><li><a href="global.html#pam_optimize">pam_optimize</a></li><li><a href="global.html#pam_swap">pam_swap</a></li><li><a href="global.html#pammedsil">pammedsil</a></li><li><a href="global.html#pammedsil_build_initialize">pammedsil_build_initialize</a></li><li><a href="global.html#pammedsil_optimize">pammedsil_optimize</a></li><li><a href="global.html#pammedsil_swap">pammedsil_swap</a></li><li><a href="global.html#pamsil">pamsil</a></li><li><a href="global.html#pamsil_build_initialize">pamsil_build_initialize</a></li><li><a href="global.html#pamsil_optimize">pamsil_optimize</a></li><li><a href="global.html#pamsil_swap">pamsil_swap</a></li><li><a href="global.html#par_fasterpam">par_fasterpam</a></li><li><a href="global.html#par_silhouette">par_silhouette</a></li><li><a href="global.html#rand_fasterpam">rand_fasterpam</a></li><li><a href="global.html#random_initialization">random_initialization</a></li><li><a href="global.html#remove_med">remove_med</a></li><li><a href="global.html#sample">sample</a></li><li><a href="global.html#shuffle">shuffle</a></li><li><a href="global.html#silhouette">silhouette</a></li><li><a href="global.html#update_removal_loss">update_removal_loss</a></li><li><a href="global.html#update_second_nearest">update_second_nearest</a></li><li><a href="global.html#update_third_nearest">update_third_nearest</a></li><li><a href="global.html#update_third_nearest_without_new">update_third_nearest_without_new</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">k-medoids/pammedsil.mjs</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// Ported 1:1 from src/pammedsil.rs (PAMMEDSIL algorithm).
+import { arrayAdapter } from './arrayadapter.mjs';
+import { Reco, DistancePair, U32_MAX, USIZE_MAX, choose_medoid_within_partition } from './util.mjs';
+import { _loss, initial_assignment, do_swap } from './fastermsc.mjs';
+
+/**
+ * Run the original PAMMEDSIL SWAP algorithm (no initialization, but given initial medoids).
+ * @param {object} mat - pairwise distance matrix
+ * @param {number[]} med - the list of medoids (mutated in place)
+ * @param {number} maxiter - the maximum number of iterations allowed
+ * returns { loss, assi, nIter, nSwaps }
+ */
+export function pammedsil_swap(mat, med, maxiter) {
+  mat = arrayAdapter(mat);
+  const [loss, data] = initial_assignment(mat, med);
+  return pammedsil_optimize(mat, med, data, maxiter, loss);
+}
+
+/**
+ * Run the original PAM BUILD algorithm combined with the PAMMEDSIL SWAP.
+ * @param {object} mat - pairwise distance matrix
+ * @param {number} k - the number of medoids to pick
+ * @param {number} maxiter - the maximum number of iterations allowed
+ * returns { loss, assi, meds, nIter, nSwaps }
+ */
+export function pammedsil(mat, k, maxiter) {
+  mat = arrayAdapter(mat);
+  const n = mat.len();
+  if (!mat.isSquare()) throw new Error('Dissimilarity matrix is not square');
+  if (!(n &lt;= U32_MAX)) throw new Error('N is too large');
+  if (!(k > 0 &amp;&amp; k &lt; U32_MAX)) throw new Error('invalid N');
+  if (!(k &lt;= n)) throw new Error('k must be at most N');
+  const meds = [];
+  const data = [];
+  const loss = pammedsil_build_initialize(mat, meds, data, k);
+  const { loss: nloss, assi, nIter, nSwaps } = pammedsil_optimize(mat, meds, data, maxiter, loss);
+  return { loss: nloss, assi, meds, nIter, nSwaps }; // also return medoids
+}
+
+/** Main optimization function of PAMMEDSIL, not exposed (use pammedsil_swap or pammedsil) */
+function pammedsil_optimize(mat, med, data, maxiter, loss) {
+  const n = mat.len(), k = med.length;
+  if (k === 1) {
+    const assi = new Array(n).fill(0);
+    const [swapped, lloss] = choose_medoid_within_partition(mat, assi, med, 0);
+    return { loss: lloss, assi, nIter: 1, nSwaps: swapped ? 1 : 0 };
+  }
+  let n_swaps = 0, iter = 0;
+  while (iter &lt; maxiter) {
+    iter += 1;
+    let best = [0, k, USIZE_MAX];
+    for (let j = 0; j &lt; n; j++) {
+      if (j === med[data[j].near.i]) {
+        continue; // This already is a medoid
+      }
+      const [change, b] = (k === 2)
+        ? find_best_swap_pammedsil_k2(mat, med, data, j)
+        : find_best_swap_pammedsil(mat, med, data, j);
+      if (change &lt;= best[0]) {
+        continue; // No improvement
+      }
+      best = [change, b, j];
+    }
+    if (best[0] > 0) {
+      n_swaps += 1;
+      // perform the swap
+      const newloss = do_swap(mat, med, data, best[1], best[2]);
+      if (newloss >= loss) {
+        break; // Probably numerically unstable now.
+      }
+      loss = newloss;
+    } else {
+      break; // No improvement, or NaN.
+    }
+  }
+  const assi = data.map((x) => x.near.i);
+  loss = 1 - loss / n;
+  return { loss, assi, nIter: iter, nSwaps: n_swaps };
+}
+
+/** Find the best swap for object j. Returns [change, b]. */
+function find_best_swap_pammedsil(mat, med, data, j) {
+  const recj = data[j];
+  let best = [0, USIZE_MAX];
+  for (let m = 0; m &lt; med.length; m++) {
+    let acc = _loss(recj.near.d, recj.seco.d); // j becomes medoid
+    for (let o = 0; o &lt; data.length; o++) {
+      const reco = data[o];
+      if (o === j) {
+        continue;
+      }
+      const doj = mat.get(o, j);
+      // Current medoid is being replaced:
+      if (reco.near.i === m) {
+        if (doj &lt; reco.seco.d) {
+          // Assign to new medoid:
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(doj, reco.seco.d);
+        } else if (doj &lt; reco.third.d) {
+          // Assign to second nearest instead:
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.seco.d, doj);
+        } else {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.seco.d, reco.third.d);
+        }
+      } else if (reco.seco.i === m) {
+        if (doj &lt; reco.near.d) {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(doj, reco.near.d);
+        } else if (doj &lt; reco.third.d) {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.near.d, doj);
+        } else {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.near.d, reco.third.d);
+        }
+      } else {
+        if (doj &lt; reco.near.d) {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(doj, reco.near.d);
+        } else if (doj &lt; reco.seco.d) {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.near.d, doj);
+        }
+      }
+    }
+    if (acc > best[0]) {
+      best = [acc, m];
+    }
+  }
+  return best;
+}
+
+/** Find the best swap for object j (k=2 variant). Returns [change, b]. */
+function find_best_swap_pammedsil_k2(mat, med, data, j) {
+  const recj = data[j];
+  let best = [0, USIZE_MAX];
+  for (let m = 0; m &lt; med.length; m++) {
+    let acc = _loss(recj.near.d, recj.seco.d); // j becomes medoid
+    for (let o = 0; o &lt; data.length; o++) {
+      const reco = data[o];
+      if (o === j) {
+        continue;
+      }
+      const doj = mat.get(o, j);
+      // Current medoid is being replaced:
+      if (reco.near.i === m) {
+        if (doj &lt; reco.seco.d) {
+          // Assign to new medoid:
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(doj, reco.seco.d);
+        } else {
+          // Assign to second nearest instead:
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.seco.d, doj);
+        }
+      } else if (reco.seco.i === m) {
+        if (doj &lt; reco.near.d) {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(doj, reco.near.d);
+        } else {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.near.d, doj);
+        }
+      } else {
+        if (doj &lt; reco.near.d) {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(doj, reco.near.d);
+        } else if (doj &lt; reco.seco.d) {
+          acc += _loss(reco.near.d, reco.seco.d) - _loss(reco.near.d, doj);
+        }
+      }
+    }
+    if (acc > best[0]) {
+      best = [acc, m];
+    }
+  }
+  return best;
+}
+
+/** Not exposed. Use pammedsil_build or pammedsil. Pushes into meds &amp; data. Returns loss. */
+function pammedsil_build_initialize(mat, meds, data, k) {
+  const n = mat.len();
+  // choose first medoid
+  let best = [0, k];
+  for (let i = 0; i &lt; n; i++) {
+    let sum = 0;
+    for (let j = 0; j &lt; n; j++) {
+      if (j !== i) {
+        sum += mat.get(j, i);
+      }
+    }
+    if (i === 0 || sum &lt; best[0]) {
+      best = [sum, i];
+    }
+  }
+  let loss = best[0];
+  meds.push(best[1]);
+  for (let j = 0; j &lt; n; j++) {
+    data.push(new Reco(0, mat.get(j, best[1]), U32_MAX, 0, U32_MAX, 0));
+  }
+  // choose remaining medoids
+  for (let l = 1; l &lt; k; l++) {
+    best = [0, k];
+    for (let i = 1; i &lt; data.length; i++) {
+      let sum = -data[i].near.d;
+      for (let jj = 0; jj &lt; data.length; jj++) {
+        const dj = data[jj];
+        if (jj !== i) {
+          const d = mat.get(jj, i);
+          if (d &lt; dj.near.d) {
+            sum += d - dj.near.d;
+          }
+        }
+      }
+      if (i === 0 || sum &lt; best[0]) {
+        best = [sum, i];
+      }
+    }
+    if (best[0] >= 0) { break; } // No more improvement, duplicates
+    // Update assignments:
+    loss = 0;
+    for (let jj = 0; jj &lt; data.length; jj++) {
+      const recj = data[jj];
+      if (jj === best[1]) {
+        recj.third = recj.seco.clone();
+        recj.seco = recj.near.clone();
+        recj.near = new DistancePair(l, 0);
+      } else {
+        const dj = mat.get(jj, best[1]);
+        if (dj &lt; recj.near.d) {
+          recj.third = recj.seco.clone();
+          recj.seco = recj.near.clone();
+          recj.near = new DistancePair(l, dj);
+        } else if (recj.seco.i === U32_MAX || dj &lt; recj.seco.d) {
+          recj.third = recj.seco.clone();
+          recj.seco = new DistancePair(l, dj);
+        } else if (recj.third.i === U32_MAX || dj &lt; recj.third.d) {
+          recj.third = new DistancePair(l, dj);
+        }
+      }
+      loss += _loss(recj.near.d, recj.seco.d);
+    }
+    meds.push(best[1]);
+  }
+  return loss;
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Sun Jun 14 2026 10:59:21 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>

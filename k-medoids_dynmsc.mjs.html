@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>k-medoids/dynmsc.mjs - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="DenseMatrix.html">DenseMatrix</a></li><li><a href="DistancePair.html">DistancePair</a></li><li><a href="LowerTriangle.html">LowerTriangle</a></li><li><a href="Rec.html">Rec</a></li><li><a href="Reco.html">Reco</a></li></ul><h3>Global</h3><ul><li><a href="global.html#PCA">PCA</a></li><li><a href="global.html#WCluster">WCluster</a></li><li><a href="global.html#alternating">alternating</a></li><li><a href="global.html#arrayAdapter">arrayAdapter</a></li><li><a href="global.html#assign_nearest">assign_nearest</a></li><li><a href="global.html#choose_medoid_within_partition">choose_medoid_within_partition</a></li><li><a href="global.html#cluster">cluster</a></li><li><a href="global.html#do_swap">do_swap</a></li><li><a href="global.html#do_swap_k2">do_swap_k2</a></li><li><a href="global.html#dynmsc">dynmsc</a></li><li><a href="global.html#fastermsc">fastermsc</a></li><li><a href="global.html#fastermsc_k2">fastermsc_k2</a></li><li><a href="global.html#fasterpam">fasterpam</a></li><li><a href="global.html#fastmsc">fastmsc</a></li><li><a href="global.html#fastmsc_k2">fastmsc_k2</a></li><li><a href="global.html#fastpam1">fastpam1</a></li><li><a href="global.html#find_best_swap">find_best_swap</a></li><li><a href="global.html#find_best_swap_k2">find_best_swap_k2</a></li><li><a href="global.html#find_best_swap_pam">find_best_swap_pam</a></li><li><a href="global.html#find_best_swap_pammedsil">find_best_swap_pammedsil</a></li><li><a href="global.html#find_best_swap_pammedsil_k2">find_best_swap_pammedsil_k2</a></li><li><a href="global.html#find_max">find_max</a></li><li><a href="global.html#find_min">find_min</a></li><li><a href="global.html#first_k">first_k</a></li><li><a href="global.html#initial_assignment">initial_assignment</a></li><li><a href="global.html#initial_assignment_k2">initial_assignment_k2</a></li><li><a href="global.html#medoid_silhouette">medoid_silhouette</a></li><li><a href="global.html#pam">pam</a></li><li><a href="global.html#pam_build">pam_build</a></li><li><a href="global.html#pam_build_initialize">pam_build_initialize</a></li><li><a href="global.html#pam_optimize">pam_optimize</a></li><li><a href="global.html#pam_swap">pam_swap</a></li><li><a href="global.html#pammedsil">pammedsil</a></li><li><a href="global.html#pammedsil_build_initialize">pammedsil_build_initialize</a></li><li><a href="global.html#pammedsil_optimize">pammedsil_optimize</a></li><li><a href="global.html#pammedsil_swap">pammedsil_swap</a></li><li><a href="global.html#pamsil">pamsil</a></li><li><a href="global.html#pamsil_build_initialize">pamsil_build_initialize</a></li><li><a href="global.html#pamsil_optimize">pamsil_optimize</a></li><li><a href="global.html#pamsil_swap">pamsil_swap</a></li><li><a href="global.html#par_fasterpam">par_fasterpam</a></li><li><a href="global.html#par_silhouette">par_silhouette</a></li><li><a href="global.html#rand_fasterpam">rand_fasterpam</a></li><li><a href="global.html#random_initialization">random_initialization</a></li><li><a href="global.html#remove_med">remove_med</a></li><li><a href="global.html#sample">sample</a></li><li><a href="global.html#shuffle">shuffle</a></li><li><a href="global.html#silhouette">silhouette</a></li><li><a href="global.html#update_removal_loss">update_removal_loss</a></li><li><a href="global.html#update_second_nearest">update_second_nearest</a></li><li><a href="global.html#update_third_nearest">update_third_nearest</a></li><li><a href="global.html#update_third_nearest_without_new">update_third_nearest_without_new</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">k-medoids/dynmsc.mjs</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// Ported 1:1 from src/dynmsc.rs (DynMSC algorithm).
+import { arrayAdapter } from './arrayadapter.mjs';
+import { Reco, DistancePair, U32_MAX, USIZE_MAX, choose_medoid_within_partition } from './util.mjs';
+import { _loss, initial_assignment, update_removal_loss, find_best_swap, do_swap, fastermsc_k2 } from './fastermsc.mjs';
+
+/**
+ * Run the DynMSC algorithm.
+ *
+ * We begin with a maximum number of clusters, optimize the Average Medoid Silhouette,
+ * then decrease the number of clusters by one, and repeat until we have reached a
+ * minimum number of clusters. During this process, we store the solution with the
+ * highest AMS to return later.
+ *
+ * @param {object} mat - a pairwise distance matrix
+ * @param {number[]} med - the list of medoids
+ * @param {number} mink - the minimum number of clusters
+ * @param {number} maxiter - the maximum number of iterations allowed
+ * returns { loss, assi, nIter, nSwaps, meds, losses }
+ */
+export function dynmsc(mat, med, mink, maxiter) {
+  mat = arrayAdapter(mat);
+  med = med.slice(); // Rust: let mut med = med.to_owned();
+  const n = mat.len();
+  let k = med.length;
+  const minimum_k = Math.min(Math.max(mink, 1), k);
+  if (k === 1) {
+    const return_loss = new Array(1).fill(0);
+    const assi = new Array(n).fill(0);
+    const [swapped, loss] = choose_medoid_within_partition(mat, assi, med, 0);
+    return_loss[0] = loss;
+    const return_meds = med.slice();
+    return { loss, assi, nIter: 1, nSwaps: swapped ? 1 : 0, meds: return_meds, losses: return_loss };
+  }
+  let [loss, data] = initial_assignment(mat, med);
+
+  const return_loss = new Array(k - minimum_k + 1).fill(0);
+  let best_loss = 0;
+  let return_assi = [0, n]; // Rust: vec![0, n]; overwritten before being meaningfully used
+  let return_iter = 0;
+  let return_swaps = 0;
+  let lastswap, n_swaps, iter;
+  let removal_loss = new Array(k).fill(0);
+  let return_meds = med.slice();
+  while (k >= 3 &amp;&amp; k >= minimum_k) {
+    update_removal_loss(data, removal_loss);
+    lastswap = n;
+    n_swaps = 0;
+    iter = 0;
+    while (iter &lt; maxiter) {
+      iter += 1;
+      const swaps_before = n_swaps, lastloss = loss;
+      for (let j = 0; j &lt; n; j++) {
+        if (j === lastswap) {
+          break;
+        }
+        if (j === med[data[j].near.i]) {
+          continue; // This already is a medoid
+        }
+        const [change, b] = find_best_swap(mat, removal_loss, data, j);
+        if (change &lt;= 0) {
+          continue; // No improvement
+        }
+        n_swaps += 1;
+        lastswap = j;
+        // perform the swap
+        loss = do_swap(mat, med, data, b, j);
+        update_removal_loss(data, removal_loss);
+      }
+      if (n_swaps === swaps_before || loss >= lastloss) {
+        break; // converged
+      }
+    }
+    let r = [0, USIZE_MAX];
+    for (let o = 0; o &lt; removal_loss.length; o++) {
+      const remloss = removal_loss[o];
+      if (o === 0 || remloss &lt; r[0]) {
+        r = [remloss, o];
+      }
+    }
+    loss = 1 - loss / n;
+    return_loss[k - minimum_k] = loss;
+    const assi = data.map((x) => x.near.i);
+    if (loss > best_loss) {
+      best_loss = loss;
+      return_assi = assi;
+      return_meds = med.slice();
+    }
+    return_swaps += n_swaps;
+    return_iter += iter;
+    loss = remove_med(mat, med, data, r[1]);
+    removal_loss.splice(r[1], 1);
+    k = med.length;
+  }
+  if (minimum_k &lt;= 2) {
+    const { loss: loss2, assi: assi2, nIter: iter2, nSwaps: n_swaps2 } = fastermsc_k2(mat, med, maxiter);
+    return_loss[2 - minimum_k] = loss2;
+    if (loss2 > best_loss) {
+      best_loss = loss2;
+      return_meds = med.slice();
+      return_assi = assi2;
+    }
+    return_swaps += n_swaps2;
+    return_iter += iter2;
+  }
+  if (minimum_k &lt;= 1) {
+    return_loss[0] = 0;
+  }
+  return { loss: best_loss, assi: return_assi, nIter: return_iter, nSwaps: return_swaps, meds: return_meds, losses: return_loss };
+}
+
+/**
+ * Update the third nearest medoid information. Called after each swap.
+ * Returns a fresh DistancePair.
+ */
+export function update_third_nearest_without_new(mat, med, n, s, b, o) {
+  let dist = new DistancePair(b, 0);
+  for (let i = 0; i &lt; med.length; i++) {
+    const mi = med[i];
+    if (i === n || i === s) {
+      continue;
+    }
+    const d = mat.get(o, mi);
+    if (dist.i === b || d &lt; dist.d) {
+      dist = new DistancePair(i, d);
+    }
+  }
+  return dist;
+}
+
+/** Remove one medoid. Returns RAW loss. */
+export function remove_med(mat, med, data, b) {
+  const l = med.length - 1;
+  if (!(b &lt; med.length)) throw new Error('invalid medoid number');
+  med[b] = med[l];
+  med.splice(l, 1);
+  let acc = 0;
+  for (let o = 0; o &lt; data.length; o++) {
+    const reco = data[o];
+    if (reco.near.i === b) {
+      // nearest medoid is gone
+      if (reco.seco.i === l) {
+        reco.seco.i = b;
+      }
+      if (reco.third.i === l) {
+        reco.third.i = b;
+      }
+      reco.near = reco.seco.clone();
+      reco.seco = reco.third.clone();
+      reco.third = update_third_nearest_without_new(mat, med, reco.near.i, reco.seco.i, b, o);
+    } else if (reco.seco.i === b) {
+      // second nearest is gone
+      if (reco.near.i === l) {
+        reco.near.i = b;
+      }
+      if (reco.third.i === l) {
+        reco.third.i = b;
+      }
+      reco.seco = reco.third.clone();
+      reco.third = update_third_nearest_without_new(mat, med, reco.near.i, reco.seco.i, b, o);
+    } else if (reco.third.i === b) {
+      // third nearest is gone
+      if (reco.near.i === l) {
+        reco.near.i = b;
+      }
+      if (reco.seco.i === l) {
+        reco.seco.i = b;
+      }
+      reco.third = update_third_nearest_without_new(mat, med, reco.near.i, reco.seco.i, b, o);
+    } else {
+      if (reco.near.i === l) {
+        reco.near.i = b;
+      }
+      if (reco.seco.i === l) {
+        reco.seco.i = b;
+      }
+      if (reco.third.i === l) {
+        reco.third.i = b;
+      }
+    }
+    acc += _loss(reco.near.d, reco.seco.d);
+  }
+  return acc;
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Sun Jun 14 2026 10:59:21 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>

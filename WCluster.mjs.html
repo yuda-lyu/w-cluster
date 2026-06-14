@@ -29,7 +29,7 @@
 <nav >
     
     
-    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#PCA">PCA</a></li><li><a href="global.html#WCluster">WCluster</a></li><li><a href="global.html#cluster">cluster</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="DenseMatrix.html">DenseMatrix</a></li><li><a href="DistancePair.html">DistancePair</a></li><li><a href="LowerTriangle.html">LowerTriangle</a></li><li><a href="Rec.html">Rec</a></li><li><a href="Reco.html">Reco</a></li></ul><h3>Global</h3><ul><li><a href="global.html#PCA">PCA</a></li><li><a href="global.html#WCluster">WCluster</a></li><li><a href="global.html#alternating">alternating</a></li><li><a href="global.html#arrayAdapter">arrayAdapter</a></li><li><a href="global.html#assign_nearest">assign_nearest</a></li><li><a href="global.html#choose_medoid_within_partition">choose_medoid_within_partition</a></li><li><a href="global.html#cluster">cluster</a></li><li><a href="global.html#do_swap">do_swap</a></li><li><a href="global.html#do_swap_k2">do_swap_k2</a></li><li><a href="global.html#dynmsc">dynmsc</a></li><li><a href="global.html#fastermsc">fastermsc</a></li><li><a href="global.html#fastermsc_k2">fastermsc_k2</a></li><li><a href="global.html#fasterpam">fasterpam</a></li><li><a href="global.html#fastmsc">fastmsc</a></li><li><a href="global.html#fastmsc_k2">fastmsc_k2</a></li><li><a href="global.html#fastpam1">fastpam1</a></li><li><a href="global.html#find_best_swap">find_best_swap</a></li><li><a href="global.html#find_best_swap_k2">find_best_swap_k2</a></li><li><a href="global.html#find_best_swap_pam">find_best_swap_pam</a></li><li><a href="global.html#find_best_swap_pammedsil">find_best_swap_pammedsil</a></li><li><a href="global.html#find_best_swap_pammedsil_k2">find_best_swap_pammedsil_k2</a></li><li><a href="global.html#find_max">find_max</a></li><li><a href="global.html#find_min">find_min</a></li><li><a href="global.html#first_k">first_k</a></li><li><a href="global.html#initial_assignment">initial_assignment</a></li><li><a href="global.html#initial_assignment_k2">initial_assignment_k2</a></li><li><a href="global.html#medoid_silhouette">medoid_silhouette</a></li><li><a href="global.html#pam">pam</a></li><li><a href="global.html#pam_build">pam_build</a></li><li><a href="global.html#pam_build_initialize">pam_build_initialize</a></li><li><a href="global.html#pam_optimize">pam_optimize</a></li><li><a href="global.html#pam_swap">pam_swap</a></li><li><a href="global.html#pammedsil">pammedsil</a></li><li><a href="global.html#pammedsil_build_initialize">pammedsil_build_initialize</a></li><li><a href="global.html#pammedsil_optimize">pammedsil_optimize</a></li><li><a href="global.html#pammedsil_swap">pammedsil_swap</a></li><li><a href="global.html#pamsil">pamsil</a></li><li><a href="global.html#pamsil_build_initialize">pamsil_build_initialize</a></li><li><a href="global.html#pamsil_optimize">pamsil_optimize</a></li><li><a href="global.html#pamsil_swap">pamsil_swap</a></li><li><a href="global.html#par_fasterpam">par_fasterpam</a></li><li><a href="global.html#par_silhouette">par_silhouette</a></li><li><a href="global.html#rand_fasterpam">rand_fasterpam</a></li><li><a href="global.html#random_initialization">random_initialization</a></li><li><a href="global.html#remove_med">remove_med</a></li><li><a href="global.html#sample">sample</a></li><li><a href="global.html#shuffle">shuffle</a></li><li><a href="global.html#silhouette">silhouette</a></li><li><a href="global.html#update_removal_loss">update_removal_loss</a></li><li><a href="global.html#update_second_nearest">update_second_nearest</a></li><li><a href="global.html#update_third_nearest">update_third_nearest</a></li><li><a href="global.html#update_third_nearest_without_new">update_third_nearest_without_new</a></li></ul>
     
 </nav>
 
@@ -72,12 +72,16 @@ async function PCA(data, opt = {}) {
  * @param {Number} [opt.kNumber=2] 輸入指定分群數整數，不能超過數據的長度，預設2
  * @param {Number} [opt.nCompNIPALS=2] 輸入指定降維的維度整數，不能超過數據的維度(各列有效元素數量)，預設2
  * @param {String} [opt.mode='k-medoids'] 輸入分群方法字串，可為'k-means'、'k-medoids'，k-means受初始隨機群中心影響較大，預設'k-medoids'
- * @return {Promise} 回傳Promise，resolve回傳分群後結果物件，keys代表分群有使用到的欄位，ginds代表分群後的指標陣列，gltdt代表分群後的物件陣列，gmat代表分群後且經過PCA處理的數據陣列，其內因是降維後的數據，可例如取最左2欄的數據代表x,y來繪製分群後二維分佈圖，reject回傳錯誤訊息
+ * @param {Boolean} [opt.usePCA=true] 輸入分群前是否先對數據做PCA降維布林值，預設true；若使用自訂非歐距離(如Jaccard對二元向量)應設為false，以保留原始數據語意
+ * @param {Function} [opt.funDist] 輸入自訂距離函數，函數接收兩數據陣列(t1,t2)並回傳兩者距離數值，僅於mode為'k-medoids'時生效，未提供時底層採用歐氏(euclidean)距離
+ * @param {String} [opt.useMethod='fasterPAM'] 輸入k-medoids分群後端字串，僅於mode為'k-medoids'時生效，'simple'為npm套件'k-medoids'(樸素PAM)，'fasterPAM'為內建./src/k-medoids之矩陣式FasterPAM(大數據較快)，預設'fasterPAM'
+ * @param {Number} [opt.seed] 輸入k-means隨機初始化種子整數，僅於mode為'k-means'時生效，給定則分群結果可重現，未提供時為隨機初始化
+ * @return {Promise} 回傳Promise，resolve回傳分群後結果物件，keys代表分群有使用到的欄位，ginds代表分群後的指標陣列，gltdt代表分群後的物件陣列，gmat代表分群後的數據陣列(usePCA為true時為PCA降維後數據，可例如取最左2欄代表x,y繪製二維分佈圖；usePCA為false時為原始數據)，reject回傳錯誤訊息
  * @example
  */
 async function cluster(data, opt = {}) {
     try {
-        return WClusterCore(data, opt)
+        return await WClusterCore(data, opt)
     }
     catch (err) {
         return Promise.reject(err)
@@ -345,7 +349,7 @@ export default WCluster
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.2</a> on Sat Mar 23 2024 16:02:30 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Sun Jun 14 2026 10:59:21 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>
