@@ -1,10 +1,10 @@
 import get from 'lodash-es/get.js'
 import each from 'lodash-es/each.js'
 import size from 'lodash-es/size.js'
-// import take from 'lodash-es/take.js'
 import map from 'lodash-es/map.js'
 import values from 'lodash-es/values.js'
 import dtpick from 'wsemi/src/dtpick.mjs'
+import isbol from 'wsemi/src/isbol.mjs'
 import isnum from 'wsemi/src/isnum.mjs'
 import isearr from 'wsemi/src/isearr.mjs'
 import iseobj from 'wsemi/src/iseobj.mjs'
@@ -48,7 +48,7 @@ function getEffData(ltdt, ks) {
 }
 
 
-function WClusterCore(data, opt = {}) {
+async function WClusterCore(data, opt = {}) {
 
     //check
     if (!isearr(data)) {
@@ -56,14 +56,20 @@ function WClusterCore(data, opt = {}) {
     }
 
     //kNumber
-    let kNumber = get(opt, 'kNumber')
+    let kNumber = get(opt, 'kNumber', null)
     if (!isnum(kNumber)) {
         kNumber = 2
     }
     kNumber = cint(kNumber)
 
+    //usePCA
+    let usePCA = get(opt, 'usePCA', null)
+    if (!isbol(usePCA)) {
+        usePCA = true
+    }
+
     //nCompNIPALS
-    let nCompNIPALS = get(opt, 'nCompNIPALS')
+    let nCompNIPALS = get(opt, 'nCompNIPALS', null)
     if (!isnum(nCompNIPALS)) {
         nCompNIPALS = 2
     }
@@ -71,7 +77,16 @@ function WClusterCore(data, opt = {}) {
     // console.log('nCompNIPALS', nCompNIPALS)
 
     //mode, 由WDataCluster檢核與給予預設值
-    let mode = get(opt, 'mode')
+    let mode = get(opt, 'mode', null)
+
+    //seed
+    let seed = get(opt, 'seed', null)
+
+    //funDist
+    let funDist = get(opt, 'funDist', null)
+
+    //useMethod
+    let useMethod = get(opt, 'useMethod', 'fasterPAM')
 
     let type = ''
     let n = size(data)
@@ -87,11 +102,9 @@ function WClusterCore(data, opt = {}) {
     })
     if (iobj === n) {
         type = 'obj'
-        // return WClusterCore(data, opt)
     }
     else if (imat === n) {
         type = 'mat'
-        // return WClusterMat(data, opt)
     }
     else {
         throw new Error('data is not of the same type')
@@ -113,17 +126,13 @@ function WClusterCore(data, opt = {}) {
     }
 
     //WPCAMat
-    let pcad = WPCAMat(mat, { nCompNIPALS })
-
-    // //reduce
-    // pcad = map(pcad, (v) => {
-    //     v = take(v, nCompNIPALS)
-    //     return v
-    // })
-    // // console.log('pcad', pcad)
+    let pcad = mat
+    if (usePCA) {
+        pcad = WPCAMat(mat, { nCompNIPALS })
+    }
 
     //WClusterMat
-    let ginds = WClusterMat(pcad, { kNumber, mode })
+    let ginds = await WClusterMat(pcad, { kNumber, mode, seed, funDist, useMethod })
 
     //gmat
     let gmat = map(ginds, (inds) => {

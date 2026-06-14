@@ -2,7 +2,7 @@ import assert from 'assert'
 import WCluster from '../src/WCluster.mjs'
 
 
-describe(`cluster`, function() {
+describe(`k-medoids simple`, function() {
 
     let mode = 'k-medoids'
 
@@ -41,7 +41,7 @@ describe(`cluster`, function() {
     }
 
     it(`should return '${JSON.stringify(clmat)}' when input ${JSON.stringify(mat)}, { mode, kNumber: 2, nCompNIPALS: 2 }`, async function() {
-        let r = await WCluster.cluster(mat, { mode, kNumber: 2, nCompNIPALS: 2 })
+        let r = await WCluster.cluster(mat, { mode, kNumber: 2, nCompNIPALS: 2, useMethod: 'simple' })
         assert.strict.deepStrictEqual(r, clmat)
     })
 
@@ -80,7 +80,7 @@ describe(`cluster`, function() {
     }
 
     it(`should return '${JSON.stringify(clmat2)}' when input ${JSON.stringify(mat2)}, { mode, kNumber: 2, nCompNIPALS: 2 }`, async function() {
-        let r = await WCluster.cluster(mat2, { mode, kNumber: 2, nCompNIPALS: 2 })
+        let r = await WCluster.cluster(mat2, { mode, kNumber: 2, nCompNIPALS: 2, useMethod: 'simple' })
         assert.strict.deepStrictEqual(r, clmat2)
     })
 
@@ -119,7 +119,7 @@ describe(`cluster`, function() {
     }
 
     it(`should return '${JSON.stringify(clmat3)}' when input ${JSON.stringify(mat3)}, { mode, kNumber: 2, nCompNIPALS: 2 }`, async function() {
-        let r = await WCluster.cluster(mat3, { mode, kNumber: 2, nCompNIPALS: 2 })
+        let r = await WCluster.cluster(mat3, { mode, kNumber: 2, nCompNIPALS: 2, useMethod: 'simple' })
         assert.strict.deepStrictEqual(r, clmat3)
     })
 
@@ -158,7 +158,7 @@ describe(`cluster`, function() {
     }
 
     it(`should return '${JSON.stringify(clltdt)}' when input ${JSON.stringify(ltdt)}, { mode, kNumber: 2, nCompNIPALS: 2 }`, async function() {
-        let r = await WCluster.cluster(ltdt, { mode, kNumber: 2, nCompNIPALS: 2 })
+        let r = await WCluster.cluster(ltdt, { mode, kNumber: 2, nCompNIPALS: 2, useMethod: 'simple' })
         assert.strict.deepStrictEqual(r, clltdt)
     })
 

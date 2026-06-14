@@ -1,0 +1,8 @@
+{
+  "name": "k-medoids",
+  "version": "0.5.5",
+  "description": "k-Medoids clustering (FasterPAM, FasterMSC, DynMSC, PAM, ...) ported from rust-kmedoids",
+  "type": "module",
+  "main": "index.mjs",
+  "license": "GPL-3.0-or-later"
+}

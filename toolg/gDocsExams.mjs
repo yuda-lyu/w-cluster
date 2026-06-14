@@ -14,7 +14,7 @@ function main() {
     //pks
     let pks = getPks()
 
-    //url
+    //url, urlww
     let url = `https://cdn.jsdelivr.net/npm/w-cluster@${pks.version}/dist/w-cluster.umd.js`
     let urlww = `https://cdn.jsdelivr.net/npm/w-cluster@${pks.version}/dist/w-cluster.wk.umd.js`
 

@@ -1,4 +1,5 @@
-import WCluster from './src/WCluster.mjs'
+// import WCluster from './src/WCluster.mjs'
+import WCluster from './dist/w-cluster.wk.umd.js'
 
 
 async function testCluster() {
@@ -171,4 +172,4 @@ testCluster()
         console.log(err)
     })
 
-//node g-cluster.mjs
+//node g-cluster-kMedoids-nodeworker.mjs
