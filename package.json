@@ -1,13 +1,12 @@
 {
   "name": "w-cluster",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "main": "dist/w-cluster.umd.js",
   "dependencies": {
-    "lodash-es": "^4.18.1",
     "k-medoids": "^1.0.8",
     "ml-kmeans": "^7.0.1",
     "ml-pca": "^4.1.1",
-    "wsemi": "^1.8.67"
+    "wsemi": "^1.8.68"
   },
   "devDependencies": {
     "w-package-tools": "^1.1.12"
