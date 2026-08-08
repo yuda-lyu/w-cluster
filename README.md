@@ -277,9 +277,9 @@ Add script for w-cluster.
 ```alias
 
 <!-- for basic -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.24/dist/w-cluster.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.25/dist/w-cluster.umd.js"></script>
 
 <!-- for web workers -->
-<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.24/dist/w-cluster.wk.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/w-cluster@1.0.25/dist/w-cluster.wk.umd.js"></script>
 
 ```
