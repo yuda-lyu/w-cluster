@@ -140,7 +140,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line284">line 284</a>
+        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line302">line 302</a>
     </li></ul></dd>
     
 
@@ -222,7 +222,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line15">line 15</a>
+        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line24">line 24</a>
     </li></ul></dd>
     
 
@@ -269,7 +269,7 @@
 
     <h5 class="h5-examples">Example</h5>
     
-    <pre class="prettyprint"><code></code></pre>
+    <pre class="prettyprint"><code>let mat = [    [40, 50, 60],    [50, 70, 60],    [80, 70, 90],    [50, 60, 80]]let resMat = await WCluster.PCA(mat, { nCompNIPALS: 2 })console.log(resMat)</code></pre>
 
 
 
@@ -1135,7 +1135,7 @@ Mutates dataArr[i] = index into med of nearest medoid.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line35">line 35</a>
+        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line53">line 53</a>
     </li></ul></dd>
     
 
@@ -1182,7 +1182,7 @@ Mutates dataArr[i] = index into med of nearest medoid.</p></li></ul></dd>
 
     <h5 class="h5-examples">Example</h5>
     
-    <pre class="prettyprint"><code></code></pre>
+    <pre class="prettyprint"><code>let mat = [    [40, 50, 60],    [50, 70, 60],    [80, 70, 90],    [50, 60, 80]]let res = await WCluster.cluster(mat, { mode: 'k-medoids', kNumber: 2, nCompNIPALS: 2 })console.log(res.ginds)</code></pre>
 
 
 
@@ -2380,7 +2380,7 @@ returns { loss, assi, nIter, nSwaps }</p></td>
 
     
 
-    <h4 class="name" id="fasterpam"><span class="type-signature"></span>fasterpam<span class="signature">(mat, med, maxiter)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="fasterpam"><span class="type-signature"></span>fasterpam<span class="signature">(mat, med, maxiter)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -2543,7 +2543,25 @@ of finding a better solution.</p></li></ul></dd>
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ loss, assi, nIter, nSwaps }</p>
+<p>Panics (throws) when the dissimilarity matrix is not square, or k is 0 or larger than N.</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -4051,7 +4069,7 @@ which costs O(n²) per iteration to find the best swap.</p></li></ul></dd>
 
     
 
-    <h4 class="name" id="medoid_silhouette"><span class="type-signature"></span>medoid_silhouette<span class="signature">(mat, meds, samples)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="medoid_silhouette"><span class="type-signature"></span>medoid_silhouette<span class="signature">(mat, meds, samples)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -4213,7 +4231,25 @@ distance to the cluster medoid is used instead of the average distance.</p></li>
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ sil, samples } where sil is the average medoid silhouette and
+samples are the individual values (empty [] if samples = false)</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -4224,7 +4260,7 @@ distance to the cluster medoid is used instead of the average distance.</p></li>
 
     
 
-    <h4 class="name" id="pam"><span class="type-signature"></span>pam<span class="signature">(mat, k, maxiter)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="pam"><span class="type-signature"></span>pam<span class="signature">(mat, k, maxiter)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -4385,7 +4421,24 @@ distance to the cluster medoid is used instead of the average distance.</p></li>
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ loss, assi, meds, nIter, nSwaps }</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -4396,7 +4449,7 @@ distance to the cluster medoid is used instead of the average distance.</p></li>
 
     
 
-    <h4 class="name" id="pam_build"><span class="type-signature"></span>pam_build<span class="signature">(mat, k)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="pam_build"><span class="type-signature"></span>pam_build<span class="signature">(mat, k)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -4539,7 +4592,24 @@ distance to the cluster medoid is used instead of the average distance.</p></li>
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ loss, assi, meds }</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -4720,7 +4790,7 @@ distance to the cluster medoid is used instead of the average distance.</p></li>
 
     
 
-    <h4 class="name" id="pam_swap"><span class="type-signature"></span>pam_swap<span class="signature">(mat, med, maxiter)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="pam_swap"><span class="type-signature"></span>pam_swap<span class="signature">(mat, med, maxiter)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -4881,7 +4951,24 @@ distance to the cluster medoid is used instead of the average distance.</p></li>
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ loss, assi, nIter, nSwaps }</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -5741,7 +5828,7 @@ Standard PAM BUILD storing nearest distance per point in a plain number array <c
 
     
 
-    <h4 class="name" id="pamsil_optimize"><span class="type-signature"></span>pamsil_optimize<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="pamsil_optimize"><span class="type-signature"></span>pamsil_optimize<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;number>}</span></h4>
 
     
 
@@ -5821,7 +5908,24 @@ Standard PAM BUILD storing nearest distance per point in a plain number array <c
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>[loss, n_iter, n_swaps]</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;number></span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -6034,7 +6138,7 @@ Standard PAM BUILD storing nearest distance per point in a plain number array <c
 
     
 
-    <h4 class="name" id="par_fasterpam"><span class="type-signature"></span>par_fasterpam<span class="signature">(mat, med, maxiter, rng)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="par_fasterpam"><span class="type-signature"></span>par_fasterpam<span class="signature">(mat, med, maxiter, rng)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -6213,7 +6317,25 @@ Standard PAM BUILD storing nearest distance per point in a plain number array <c
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ loss, assi, nIter, nSwaps }</p>
+<p>Panics (throws) when the dissimilarity matrix is not square, or k is 0 or larger than N.</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -6409,7 +6531,7 @@ Standard PAM BUILD storing nearest distance per point in a plain number array <c
 
     
 
-    <h4 class="name" id="rand_fasterpam"><span class="type-signature"></span>rand_fasterpam<span class="signature">(mat, med, maxiter, rng)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="rand_fasterpam"><span class="type-signature"></span>rand_fasterpam<span class="signature">(mat, med, maxiter, rng)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -6589,7 +6711,24 @@ as it decreases the dependency on the input data order.</p></li></ul></dd>
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ loss, assi, nIter, nSwaps }</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -6940,7 +7079,7 @@ as it decreases the dependency on the input data order.</p></li></ul></dd>
 
     
 
-    <h4 class="name" id="silhouette"><span class="type-signature"></span>silhouette<span class="signature">(mat, assi, samples)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="silhouette"><span class="type-signature"></span>silhouette<span class="signature">(mat, assi, samples)</span><span class="type-signature"> &rarr; {Object}</span></h4>
 
     
 
@@ -7102,7 +7241,25 @@ evaluation measure for clusterings.</p></li></ul></dd>
 <h5 class="h5-returns">Returns:</h5>
 
         
+<div class="param-desc">
+    <p>{ sil, samples } where sil is the average silhouette and samples are
+the individual silhouette values (empty [] if samples = false)</p>
+</div>
 
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+
+    </dd>
+</dl>
 
     
 
@@ -7554,7 +7711,7 @@ Returns a fresh DistancePair.</p></li></ul></dd>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Sun Oct 11 2026 13:26:02 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Fri Oct 16 2026 11:52:32 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>
