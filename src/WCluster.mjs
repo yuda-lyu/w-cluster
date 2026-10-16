@@ -11,6 +11,15 @@ import WClusterCore from './WClusterCore.mjs'
  * @param {Number} [opt.nCompNIPALS=2] 輸入指定降維的維度整數，不能超過數據的維度(各列有效元素數量)，預設2
  * @return {Promise} 回傳Promise，resolve回傳指定維數數值的陣列，reject回傳錯誤訊息
  * @example
+ *
+ * let mat = [
+ *     [40, 50, 60],
+ *     [50, 70, 60],
+ *     [80, 70, 90],
+ *     [50, 60, 80]
+ * ]
+ * let resMat = await WCluster.PCA(mat, { nCompNIPALS: 2 })
+ * console.log(resMat)
  */
 async function PCA(data, opt = {}) {
     return WPCAMat(data, opt)
@@ -31,6 +40,15 @@ async function PCA(data, opt = {}) {
  * @param {Number} [opt.seed] 輸入k-means隨機初始化種子整數，僅於mode為'k-means'時生效，給定則分群結果可重現，未提供時為隨機初始化
  * @return {Promise} 回傳Promise，resolve回傳分群後結果物件，keys代表分群有使用到的欄位，ginds代表分群後的指標陣列，gltdt代表分群後的物件陣列，gmat代表分群後的數據陣列(usePCA為true時為PCA降維後數據，可例如取最左2欄代表x,y繪製二維分佈圖；usePCA為false時為原始數據)，reject回傳錯誤訊息
  * @example
+ *
+ * let mat = [
+ *     [40, 50, 60],
+ *     [50, 70, 60],
+ *     [80, 70, 90],
+ *     [50, 60, 80]
+ * ]
+ * let res = await WCluster.cluster(mat, { mode: 'k-medoids', kNumber: 2, nCompNIPALS: 2 })
+ * console.log(res.ginds)
  */
 async function cluster(data, opt = {}) {
     try {

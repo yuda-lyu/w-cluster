@@ -11,7 +11,7 @@ import { initial_assignment, do_swap } from './fasterpam.mjs';
  * @param mat - a pairwise distance matrix
  * @param med - the list of medoids (mutated in place)
  * @param maxiter - the maximum number of iterations allowed
- * @returns { loss, assi, nIter, nSwaps }
+ * @returns {Object} { loss, assi, nIter, nSwaps }
  */
 export function pam_swap(mat, med, maxiter) {
   mat = arrayAdapter(mat);
@@ -27,7 +27,7 @@ export function pam_swap(mat, med, maxiter) {
  *
  * @param mat - a pairwise distance matrix
  * @param k - the number of medoids to pick
- * @returns { loss, assi, meds }
+ * @returns {Object} { loss, assi, meds }
  */
 export function pam_build(mat, k) {
   mat = arrayAdapter(mat);
@@ -51,7 +51,7 @@ export function pam_build(mat, k) {
  * @param mat - a pairwise distance matrix
  * @param k - the number of medoids to pick
  * @param maxiter - the maximum number of iterations allowed
- * @returns { loss, assi, meds, nIter, nSwaps }
+ * @returns {Object} { loss, assi, meds, nIter, nSwaps }
  */
 export function pam(mat, k, maxiter) {
   mat = arrayAdapter(mat);

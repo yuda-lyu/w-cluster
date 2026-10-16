@@ -47,7 +47,7 @@ export function pamsil_swap(mat, med, maxiter) {
 
 /**
  * Main optimization function of PAMSIL, not exposed (use pamsil_swap or pamsil).
- * @returns {[number, number, number]} [loss, n_iter, n_swaps]
+ * @returns {Array<number>} [loss, n_iter, n_swaps]
  */
 function pamsil_optimize(mat, med, assi, maxiter) {
   const n = mat.len(), k = med.length;

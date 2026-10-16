@@ -15,7 +15,7 @@ import { shuffle } from './initialization.mjs';
  * @param med - the list of medoids (mutated in place)
  * @param maxiter - the maximum number of iterations allowed
  * @param rng - random number generator for shuffling the input data
- * @returns { loss, assi, nIter, nSwaps }
+ * @returns {Object} { loss, assi, nIter, nSwaps }
  *
  * Panics (throws) when the dissimilarity matrix is not square, or k is 0 or larger than N.
  */

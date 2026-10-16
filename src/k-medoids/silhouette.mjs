@@ -10,7 +10,7 @@ import { arrayAdapter } from './arrayadapter.mjs';
  * @param mat - a pairwise distance matrix
  * @param assi - the cluster assignment
  * @param samples - whether to keep the individual samples, or not
- * @returns { sil, samples } where sil is the average silhouette and samples are
+ * @returns {Object} { sil, samples } where sil is the average silhouette and samples are
  *          the individual silhouette values (empty [] if samples = false)
  */
 export function silhouette(mat, assi, samples = false) {
@@ -74,7 +74,7 @@ export function silhouette(mat, assi, samples = false) {
  * @param mat - a pairwise distance matrix
  * @param meds - the medoid list
  * @param samples - whether to keep the individual samples, or not
- * @returns { sil, samples } where sil is the average medoid silhouette and
+ * @returns {Object} { sil, samples } where sil is the average medoid silhouette and
  *          samples are the individual values (empty [] if samples = false)
  */
 export function medoid_silhouette(mat, meds, samples = false) {

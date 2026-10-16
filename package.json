@@ -1,6 +1,6 @@
 {
   "name": "w-cluster",
-  "version": "1.0.42",
+  "version": "1.0.43",
   "main": "dist/w-cluster.umd.js",
   "dependencies": {
     "k-medoids": "^1.0.8",
