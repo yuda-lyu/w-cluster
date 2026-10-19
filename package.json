@@ -1,15 +1,15 @@
 {
   "name": "w-cluster",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "main": "dist/w-cluster.umd.js",
   "dependencies": {
     "k-medoids": "^1.0.8",
     "ml-kmeans": "^7.0.1",
     "ml-pca": "^4.1.1",
-    "wsemi": "^1.9.12"
+    "wsemi": "^1.9.21"
   },
   "devDependencies": {
-    "w-package-tools": "^1.1.16"
+    "w-package-tools": "^1.1.21"
   },
   "scripts": {
     "test": "mocha --parallel \"test/*.test.mjs\" --timeout 180000",

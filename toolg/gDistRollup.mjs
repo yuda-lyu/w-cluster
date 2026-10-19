@@ -22,7 +22,9 @@ async function rp() {
         ],
     })
         .catch((err) => {
+            //建置失敗須以非0結束, 使發布流程得知
             console.log(err)
+            process.exitCode = 1
         })
 
     await rollupWorker({
@@ -45,12 +47,16 @@ async function rp() {
         ],
     })
         .catch((err) => {
+            //建置失敗須以非0結束, 使發布流程得知
             console.log(err)
+            process.exitCode = 1
         })
 
 }
 rp()
     .catch((err) => {
+        //建置失敗須以非0結束, 使發布流程得知
         console.log(err)
+        process.exitCode = 1
     })
 
