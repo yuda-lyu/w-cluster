@@ -140,7 +140,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line311">line 311</a>
+        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line325">line 325</a>
     </li></ul></dd>
     
 
@@ -1043,7 +1043,7 @@ classic facility location literature, and re-invented by Park and Jun 2009).</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line318">line 318</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line326">line 326</a>
     </li></ul></dd>
     
 
@@ -2001,7 +2001,7 @@ Mutates dataArr[i] = index into med of nearest medoid.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line345">line 345</a>
+        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line451">line 451</a>
     </li></ul></dd>
     
 
@@ -2522,7 +2522,7 @@ Mutates dataArr[i] = index into med of nearest medoid.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line62">line 62</a>
+        <a href="WCluster.mjs.html">WCluster.mjs</a>, <a href="WCluster.mjs.html#line76">line 76</a>
     </li></ul></dd>
     
 
@@ -2569,7 +2569,7 @@ Mutates dataArr[i] = index into med of nearest medoid.</p></li></ul></dd>
 
     <h5 class="h5-examples">Example</h5>
     
-    <pre class="prettyprint"><code>let mat = [    [40, 50, 60],    [50, 70, 60],    [80, 70, 90],    [50, 60, 80]]let res = await WCluster.cluster(mat, { mode: 'k-medoids', kNumber: 2, nCompNIPALS: 2 })console.log(res.ginds)let resE = await WCluster.cluster(mat, { mode: 'e-means', kNumber: 2, nCompNIPALS: 2, seed: 0 })console.log(resE.ginds)// => [ [ 1, 2, 3 ], [ 0 ] ]</code></pre>
+    <pre class="prettyprint"><code>let mat = [    [40, 50, 60],    [50, 70, 60],    [80, 70, 90],    [50, 60, 80]]let res = await WCluster.cluster(mat, { mode: 'k-medoids', kNumber: 2, nCompNIPALS: 2 })console.log(res.ginds)let resE = await WCluster.cluster(mat, { mode: 'e-means', kNumber: 2, nCompNIPALS: 2, seed: 0 })console.log(resE.ginds)// => [ [ 1, 2, 3 ], [ 0 ] ]//init: e-means預設為隨機初始化(論文作法)，群分離明顯之資料可能落入局部解(此例seed為1時一群含兩個中心)；init為'k-means++'時改用貪婪k-means++let rows = []for (let i = 0; i &lt; 300; i++) {    let g = i % 3    rows.push([g * 10 + (i % 7) * 0.1, g * -5 + (i % 11) * 0.05, (i % 13) * 0.02 + g])}let resR = await WCluster.cluster(rows, { mode: 'e-means', kNumber: 3, seed: 1 })console.log(resR.ginds.map((g) => g.length))// => [ 200, 48, 52 ]let resK = await WCluster.cluster(rows, { mode: 'e-means', kNumber: 3, seed: 1, init: 'k-means++' })console.log(resK.ginds.map((g) => g.length))// => [ 100, 100, 100 ]</code></pre>
 
 
 
@@ -3169,6 +3169,46 @@ Mutates dataArr[i] = index into med of nearest medoid.</p></li></ul></dd>
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>init</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>'random'</code>
+                
+                </td>
+            
+
+            <td class="description last"><p>輸入e-means之初始中心選取方式字串，可為'random'(論文作法，不放回隨機取k列)或'k-means++'(貪婪k-means++，每個新中心自2+floor(ln k)個依D^2抽取之候選中取使總平方距離最小者)，其餘值視為未提供，僅於mode為'e-means'時生效，預設'random'；'k-means++'於群分離明顯之混合資料(尤其資料列數不大或k不小)較不易落入局部解(評測見README)，代價是初始化需約2+ln k個走訪之距離計算(評測之預設nEpochs為5時，總CPU時間約為隨機初始化之2.5~4倍，約為評測對照組Lloyd k-means 25次走訪(隨機初始化)之0.65~0.85倍，詳見README)</p></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -3703,7 +3743,7 @@ returns { loss, assi, nIter, nSwaps, meds, losses }</p></td>
     
     <dt class="tag-description">Description:</dt>
     <dd class="tag-description"><ul class="dummy"><li><p>e-means分群(typed array版, 內部用; 輸入檢測由呼叫端負責)</p>
-<p>演算法(論文演算法1): 自資料不放回隨機取k列為初始中心; 每個走訪對全部列洗牌後依序切為批次; 每批次以目前中心做最近中心指派,
+<p>演算法(論文演算法1): 自資料不放回隨機取k列為初始中心(opt.init為'k-means++'時改以貪婪k-means++選取); 每個走訪對全部列洗牌後依序切為批次; 每批次以目前中心做最近中心指派,
 以個數n_j與和s_j對質量N_j與中心做EMA更新(步長依餘弦排程), 每5次更新檢查一次並復活未使用之群; 最後以最後一個走訪中各群被指派之點之平均作為收尾中心</p>
 <p>N_j與中心c_j = S_j/N_j之更新(參考實作base/e_means.py:456-505, 與論文式2~4等價):
 N_new = (1-alpha)<em>N_j + alpha</em>n_j ; c_new = c_j + (alpha<em>n_j/N_new)</em>(s_j/n_j - c_j) ; 未被指派之群中心不動而質量衰減</p></li></ul></dd>
@@ -3712,7 +3752,7 @@ N_new = (1-alpha)<em>N_j + alpha</em>n_j ; c_new = c_j + (alpha<em>n_j/N_new)</e
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line373">line 373</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line382">line 382</a>
     </li></ul></dd>
     
 
@@ -4227,6 +4267,46 @@ N_new = (1-alpha)<em>N_j + alpha</em>n_j ; c_new = c_j + (alpha<em>n_j/N_new)</e
 
         <tr>
             
+                <td class="name"><code>init</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>'random'</code>
+                
+                </td>
+            
+
+            <td class="description last"><p>輸入初始化方式字串，可為'random'(論文作法，不放回隨機取k列)或'k-means++'(貪婪k-means++，本庫新增之選項，初始化之距離計算次數累加於stats.dist)，其餘值視為未給，預設'random'；給了initRows或initCentroids時以其為準</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>initRows</code></td>
             
 
@@ -4367,7 +4447,7 @@ N_new = (1-alpha)<em>N_j + alpha</em>n_j ; c_new = c_j + (alpha<em>n_j/N_new)</e
 
         
 <div class="param-desc">
-    <p>回傳物件，centroids為收尾後之中心(k<em>d)，labels為最後一個走訪各列被指派之群(長度n，未被走訪之列為-1)，recipe為所用配方，epochObjective為各走訪移動中之平方距離和，nSplits為復活之群總數，stats為計數器，init為所用之初始中心之複本(k</em>d)</p>
+    <p>回傳物件，centroids為收尾後之中心(k<em>d)，labels為最後一個走訪各列被指派之群(長度n，未被走訪之列為-1)，recipe為所用配方(recipe.init為opt.init解析後之值；另給了initRows或initCentroids時其優先，實際之初始中心以回傳之init欄為準)，epochObjective為各走訪移動中之平方距離和，nSplits為復活之群總數，stats為計數器，init為所用之初始中心之複本(k</em>d)</p>
 </div>
 
 
@@ -4411,7 +4491,7 @@ N_new = (1-alpha)<em>N_j + alpha</em>n_j ; c_new = c_j + (alpha<em>n_j/N_new)</e
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line151">line 151</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line157">line 157</a>
     </li></ul></dd>
     
 
@@ -6481,7 +6561,7 @@ which costs O(n²) per iteration to find the best swap.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line287">line 287</a>
+        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line393">line 393</a>
     </li></ul></dd>
     
 
@@ -6633,14 +6713,15 @@ which costs O(n²) per iteration to find the best swap.</p></li></ul></dd>
 <dl class="details">
     
     <dt class="tag-description">Description:</dt>
-    <dd class="tag-description"><ul class="dummy"><li><p>貪婪k-means++初始化</p>
+    <dd class="tag-description"><ul class="dummy"><li><p>貪婪k-means++初始化(scikit-learn之作法, 論文附錄G.2): 首個中心隨機取一列, 其後每個新中心自 2 + floor(ln k) 個依D^2抽取之候選中取使總平方距離最小者</p>
+<p>單一擁有者: e-means(opt.init為'k-means++')與Lloyd對照組(opt.init為'kmeans++')共用此函數(同seed同結果)</p>
 <p>距離計算次數: 首個中心n次, 其後每個中心 nTrials*n 次(點對候選中心之距離評估), 累加於stats.dist</p></li></ul></dd>
     
 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterLloyd.mjs.html">WClusterLloyd.mjs</a>, <a href="WClusterLloyd.mjs.html#line31">line 31</a>
+        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line154">line 154</a>
     </li></ul></dd>
     
 
@@ -6849,7 +6930,7 @@ which costs O(n²) per iteration to find the best swap.</p></li></ul></dd>
 
             
 
-            <td class="description last"><p>輸入計數器</p></td>
+            <td class="description last"><p>輸入計數器(須有數值欄位dist)</p></td>
         </tr>
 
     
@@ -7380,7 +7461,7 @@ which costs O(n²) per iteration to find the best swap.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line372">line 372</a>
+        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line478">line 478</a>
     </li></ul></dd>
     
 
@@ -7540,7 +7621,7 @@ which costs O(n²) per iteration to find the best swap.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterLloyd.mjs.html">WClusterLloyd.mjs</a>, <a href="WClusterLloyd.mjs.html#line140">line 140</a>
+        <a href="WClusterLloyd.mjs.html">WClusterLloyd.mjs</a>, <a href="WClusterLloyd.mjs.html#line37">line 37</a>
     </li></ul></dd>
     
 
@@ -8583,7 +8664,7 @@ samples are the individual values (empty [] if samples = false)</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line184">line 184</a>
+        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line290">line 290</a>
     </li></ul></dd>
     
 
@@ -8741,7 +8822,7 @@ samples are the individual values (empty [] if samples = false)</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line148">line 148</a>
+        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line254">line 254</a>
     </li></ul></dd>
     
 
@@ -8899,7 +8980,7 @@ samples are the individual values (empty [] if samples = false)</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line205">line 205</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line211">line 211</a>
     </li></ul></dd>
     
 
@@ -11255,7 +11336,7 @@ Standard PAM BUILD storing nearest distance per point in a plain number array <c
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line227">line 227</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line233">line 233</a>
     </li></ul></dd>
     
 
@@ -11370,7 +11451,7 @@ Standard PAM BUILD storing nearest distance per point in a plain number array <c
 
         
 <div class="param-desc">
-    <p>回傳已解析之選項{ nEpochs, batchSize, alpha0, batchLaw, unusedThreshold, seed }, 未給者batchSize、alpha0、unusedThreshold為null(由規則或維度決定), seed為null(隨機)</p>
+    <p>回傳已解析之選項{ nEpochs, batchSize, alpha0, batchLaw, unusedThreshold, seed, init }, 未給者batchSize、alpha0、unusedThreshold為null(由規則或維度決定), seed為null(隨機), init預設'random'</p>
 </div>
 
 
@@ -12180,7 +12261,7 @@ as it decreases the dependency on the input data order.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line191">line 191</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line197">line 197</a>
     </li></ul></dd>
     
 
@@ -12367,7 +12448,7 @@ as it decreases the dependency on the input data order.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line255">line 255</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line262">line 262</a>
     </li></ul></dd>
     
 
@@ -12654,7 +12735,7 @@ as it decreases the dependency on the input data order.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line97">line 97</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line103">line 103</a>
     </li></ul></dd>
     
 
@@ -12898,7 +12979,7 @@ as it decreases the dependency on the input data order.</p></li></ul></dd>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line135">line 135</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line141">line 141</a>
     </li></ul></dd>
     
 
@@ -13541,7 +13622,7 @@ the individual silhouette values (empty [] if samples = false)</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line207">line 207</a>
+        <a href="WClusterUtil.mjs.html">WClusterUtil.mjs</a>, <a href="WClusterUtil.mjs.html#line313">line 313</a>
     </li></ul></dd>
     
 
@@ -13895,7 +13976,7 @@ the individual silhouette values (empty [] if samples = false)</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line118">line 118</a>
+        <a href="WEmeans.mjs.html">WEmeans.mjs</a>, <a href="WEmeans.mjs.html#line124">line 124</a>
     </li></ul></dd>
     
 
@@ -14550,7 +14631,7 @@ Returns a fresh DistancePair.</p></li></ul></dd>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Nov 17 2026 11:35:58 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Nov 17 2026 13:32:48 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>

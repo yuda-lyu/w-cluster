@@ -7,6 +7,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { buildInitSection } from './evalInitReport.mjs'
 
 
 const dir = path.dirname(fileURLToPath(import.meta.url))
@@ -75,7 +76,8 @@ function report() {
     let summary = []
     let files = {}
     for (let f of fs.readdirSync(resDir)) {
-        if (f.endsWith('.json')) {
+        //init-*.json為初始化比較(evalInit.mjs、evalInitSmall.mjs)之結果, 由evalInitReport.mjs處理
+        if (f.endsWith('.json') && !f.startsWith('init-')) {
             let j = JSON.parse(fs.readFileSync(path.join(resDir, f), 'utf8'))
             files[j.name] = j
         }
@@ -94,6 +96,7 @@ function report() {
     out.push('- 對照組A: Lloyd k-means, 與e-means共用同一個最近中心核心(src/WClusterNearest.mjs)、同一組初始中心(隨機初始化)、同一個空群復活函數, 固定25次走訪(Faiss之預設); 另含貪婪k-means++初始化版(初始化之距離計算與耗時計入).')
     out.push('- 對照組B: 本庫現行k-means之後端ml-kmeans(僅於含「-ml」之設定): 其預設(自帶k-means++初始化, 至多100次走訪, tolerance 1e-6)與「同初始中心、固定25次走訪」兩種.')
     out.push('- e-means: 走訪次數T取自{1, 1.4, 2, 2.6, 3, 5, 10, 25}各跑一次(批次大小與步長依論文縮放律由程式決定, 無任何調參), 與Lloyd同一組初始中心.')
+    out.push('- 初始化比較(e-means之隨機初始化 vs 貪婪k-means++, 見「e-means之初始化」節): 由evalInit.mjs(大資料, T取自{1.4, 2.6, 5, 10}, 5~24個seed, 與Lloyd@25同次量測以比較CPU時間)與evalInitSmall.mjs(4組小資料, 100~200個seed, 與WCluster.cluster之結果逐seed核對)產生, 判準事先定.')
     out.push('- 誤差: 每點平方距離之平均(MSE); 訓練集與另抽之測試集(10000點, 同一分佈同一組中心)皆以「最終中心對全部點做精確最近中心指派」計算, 評估之指派不計入預算與耗時.')
     out.push('- 距離計算次數: 演算法本身之(點,中心)距離評估次數(Lloyd每次走訪n*k; e-means每個走訪之列數*k; k-means++初始化之距離一併計入); 走訪次數(epoch)=距離計算次數/(n*k). 此二者與硬體無關.')
     out.push('- CPU時間: process.cpuUsage之user+system(單執行緒演算法, 含V8背景執行緒之少量開銷), 另記牆鐘時間; 每個設定先暖機(JIT); 資料固定, 變動者為演算法seed(初始中心與洗牌).')
@@ -382,6 +385,7 @@ function report() {
     head.push('')
     head.push('註: 「達標T」取自T網格{1,1.4,2,2.6,3,5,10,25}之最小值, 中位數為1者表示網格下限即已達標(實際達標所需走訪可能低於1), 比值以「≥」標示為下限. 各設定之詳細表見下.')
     head.push('')
+    head.push(...buildInitSection(resDir, ORDER))
     let idx = out.indexOf('## 評測設計')
     let all = out.slice(0, idx).concat(head, out.slice(idx))
     fs.writeFileSync(path.join(dir, 'REPORT.md'), all.join('\n') + '\n')

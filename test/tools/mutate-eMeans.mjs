@@ -39,7 +39,7 @@ const M = [
     ['M23-last-labels', 'WEmeans.mjs', 'labels[rowsView[i]] = bLabel[i]', 'labels[i] = bLabel[i]'],
     ['M24-init-usage', 'WEmeans.mjs', 'const INIT_USAGE = 1e-10', 'const INIT_USAGE = 1'],
     ['M25-check-every', 'WEmeans.mjs', 'const CHECK_UNUSED_EVERY = 5', 'const CHECK_UNUSED_EVERY = 7'],
-    ['M26-kpp-trials', 'WClusterLloyd.mjs', 'let nTrials = 2 + Math.floor(Math.log(k))', 'let nTrials = 2'],
+    ['M26-kpp-trials', 'WClusterUtil.mjs', 'let nTrials = 2 + Math.floor(Math.log(k))', 'let nTrials = 2'],
     ['M27-flatten-rowlen', 'WClusterUtil.mjs', 'if (row.length !== d) {', 'if (false) {'],
     ['M28-opt-validate', 'WEmeans.mjs', 'return isenum(v, chk) ? Number(v) : def', 'return Number(v)'],
     ['M29-lloyd-split', 'WClusterLloyd.mjs', 'if (nEmpty > 0) {', 'if (false) {'],
@@ -47,7 +47,7 @@ const M = [
     ['M32-unvisited-label', 'WClusterMat.mjs', 'labels[rows[i]] = lab[i]', 'labels[rows[i]] = 0'],
     ['M33-revival-every6', 'WEmeans.mjs', 'const CHECK_UNUSED_EVERY = 5', 'const CHECK_UNUSED_EVERY = 6'],
     ['M34-donor-weight', 'WClusterUtil.mjs', 'Math.log(weight[j]) - Math.log(-Math.log(u))', 'Math.log(Math.sqrt(weight[j])) - Math.log(-Math.log(u))'],
-    ['M35-ignore-initrows', 'WEmeans.mjs', 'opt.initRows instanceof Int32Array && opt.initRows.length === k) ? opt.initRows : initRows(n, k, seed)', 'opt.initRows instanceof Int32Array && opt.initRows.length === k) ? initRows(n, k, seed + 1) : initRows(n, k, seed)'],
+    ['M35-ignore-initrows', 'WEmeans.mjs', 'C = pickRows(X, d, opt.initRows)', 'C = pickRows(X, d, initRows(n, k, seed + 1))'],
     ['M36-no-center', 'WClusterMat.mjs', '    centerColumns(X, n, d)', '    void 0'],
     ['M37-no-bound', 'WClusterUtil.mjs', 'if (x > MAX_ABS_VALUE || x < -MAX_ABS_VALUE) {', 'if (false) {'],
     ['M38-parseopt-plain', 'WEmeans.mjs', 'let o = isPlainObject(opt) ? opt : {}', "let o = (typeof opt === 'object' && opt !== null && !Array.isArray(opt)) ? opt : {}"],
@@ -56,6 +56,25 @@ const M = [
     ['M41-flatten-alloc-guard', 'WClusterUtil.mjs', "throw new Error('invalid data: must be small enough to be processed in memory')", "throw err"],
     ['M42-init-copy', 'WEmeans.mjs', 'let init = C.slice()', 'let init = new Float64Array(C.length)'],
     ['M30-seed-parse', 'WClusterMat.mjs', "seed = (seed !== null && seed !== undefined && iseint(seed)) ? Number(seed) : null", 'seed = null'],
+    //opt.init(貪婪k-means++初始化)與其單一擁有者initKMeansPP
+    ['M43-init-default', 'WEmeans.mjs', "? o.init : 'random', //非'random'與'k-means++'者視為未給(K3)", "? o.init : 'k-means++', //非'random'與'k-means++'者視為未給(K3)"],
+    ['M44-init-names', 'WEmeans.mjs', "const INIT_NAMES = ['random', 'k-means++']", "const INIT_NAMES = ['random', 'k-means++', 'kmeans++']"],
+    ['M45-init-ignored', 'WEmeans.mjs', "else if (recipe.init === 'k-means++') {", 'else if (false) {'],
+    ['M46-init-over-initrows', 'WEmeans.mjs', 'else if (opt && opt.initRows instanceof Int32Array && opt.initRows.length === k) {', "else if (recipe.init !== 'k-means++' && opt && opt.initRows instanceof Int32Array && opt.initRows.length === k) {"],
+    ['M47-init-seed', 'WEmeans.mjs', 'C = initKMeansPP(X, n, d, k, seed, stats)', 'C = initKMeansPP(X, n, d, k, seed + 1, stats)'],
+    ['M48-init-stats', 'WEmeans.mjs', 'C = initKMeansPP(X, n, d, k, seed, stats)', 'C = initKMeansPP(X, n, d, k, seed, newStats())'],
+    ['M49-recipe-init', 'WEmeans.mjs', '        init: o.init,', "        init: 'random',"],
+    ['M50-core-init', 'WClusterCore.mjs', "init: get(opt, 'init', null),", 'init: null,'],
+    ['M51-mat-init', 'WClusterMat.mjs', "'unusedThreshold', 'init'], (key) => {", "'unusedThreshold'], (key) => {"],
+    ['M52-kpp-target', 'WClusterUtil.mjs', 'let target = rng.random() * acc', 'let target = rng.random()'],
+    ['M53-kpp-greedy', 'WClusterUtil.mjs', 'if (s < bestPot || bestRow < 0) {', 'if (s > bestPot) {'],
+    ['M54-kpp-min-closest', 'WClusterUtil.mjs', 'let m = dd < closest[i] ? dd : closest[i]', 'let m = dd'],
+    ['M55-kpp-count', 'WClusterUtil.mjs', '            stats.dist += n', '            stats.dist += 0'],
+    ['M56-lloyd-kpp-ignored', 'WClusterLloyd.mjs', "else if (opt.init === 'kmeans++') {", 'else if (false) {'],
+    //外審(2026-11-17)指出原測試未殺死之變異: 首個中心固定取第0列、D^2和為0時不隨機取列、距離和溢位時無有效列
+    ['M57-kpp-first-fixed', 'WClusterUtil.mjs', 'let first = rng.randInt(n)', 'let first = 0'],
+    ['M58-kpp-zero-acc', 'WClusterUtil.mjs', 'if (acc <= 0) {', 'if (false) {'],
+    ['M59-kpp-overflow-guard', 'WClusterUtil.mjs', 'if (s < bestPot || bestRow < 0) {', 'if (s < bestPot) {'],
 ]
 
 fs.rmSync(outRoot, { recursive: true, force: true })

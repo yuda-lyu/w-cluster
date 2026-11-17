@@ -1,5 +1,5 @@
 /**
- * e-means與Lloyd對照組所共用之小工具: 可重現之亂數、排列、隨機初始列、矩陣攤平檢測
+ * e-means與Lloyd對照組所共用之小工具: 可重現之亂數、排列、隨機初始列、貪婪k-means++初始化、矩陣攤平檢測
  *
  * 非密碼學用途, 亂數僅供分群初始化、洗牌與捐贈群抽樣, 給定seed則結果可重現(同一JS引擎數值行為下)
  */
@@ -131,6 +131,112 @@ function pickRows(X, d, rows) {
         for (let t = 0; t < d; t++) {
             C[j * d + t] = X[o + t]
         }
+    }
+    return C
+}
+
+
+/**
+ * 貪婪k-means++初始化(scikit-learn之作法, 論文附錄G.2): 首個中心隨機取一列, 其後每個新中心自 2 + floor(ln k) 個依D^2抽取之候選中取使總平方距離最小者
+ *
+ * 單一擁有者: e-means(opt.init為'k-means++')與Lloyd對照組(opt.init為'kmeans++')共用此函數(同seed同結果)
+ *
+ * 距離計算次數: 首個中心n次, 其後每個中心 nTrials*n 次(點對候選中心之距離評估), 累加於stats.dist
+ *
+ * @param {Float64Array} X 輸入資料(n*d)
+ * @param {Number} n 輸入列數
+ * @param {Number} d 輸入維度
+ * @param {Number} k 輸入群數
+ * @param {Number} seed 輸入整數seed
+ * @param {Object} stats 輸入計數器(須有數值欄位dist)
+ * @returns {Float64Array} 回傳初始中心(k*d)
+ */
+function initKMeansPP(X, n, d, k, seed, stats) {
+    let rng = makeRng(seed)
+    let nTrials = 2 + Math.floor(Math.log(k))
+    let C = new Float64Array(k * d)
+    let closest = new Float64Array(n)
+    let cand = new Float64Array(n)
+    let bestCand = new Float64Array(n)
+    let cum = new Float64Array(n)
+
+    function distTo(row, out) {
+        let ro = row * d
+        let s = 0
+        for (let i = 0; i < n; i++) {
+            let xo = i * d
+            let dd = 0
+            for (let t = 0; t < d; t++) {
+                let df = X[xo + t] - X[ro + t]
+                dd += df * df
+            }
+            out[i] = dd
+            s += dd
+        }
+        stats.dist += n
+        return s
+    }
+
+    let first = rng.randInt(n)
+    for (let t = 0; t < d; t++) {
+        C[t] = X[first * d + t]
+    }
+    distTo(first, closest)
+
+    for (let c = 1; c < k; c++) {
+        //依closest(D^2)之累積和以逆CDF抽候選
+        let acc = 0
+        for (let i = 0; i < n; i++) {
+            acc += closest[i]
+            cum[i] = acc
+        }
+        let bestPot = Infinity
+        let bestRow = -1
+        for (let tr = 0; tr < nTrials; tr++) {
+            let row
+            if (acc <= 0) {
+                row = rng.randInt(n) //所有點皆已與某中心重合, 隨機取
+            }
+            else {
+                let target = rng.random() * acc
+                let lo = 0
+                let hi = n - 1
+                while (lo < hi) {
+                    let mid = (lo + hi) >>> 1
+                    if (cum[mid] > target) {
+                        hi = mid
+                    }
+                    else {
+                        lo = mid + 1
+                    }
+                }
+                row = lo
+            }
+            let ro = row * d
+            let s = 0
+            for (let i = 0; i < n; i++) {
+                let xo = i * d
+                let dd = 0
+                for (let t = 0; t < d; t++) {
+                    let df = X[xo + t] - X[ro + t]
+                    dd += df * df
+                }
+                let m = dd < closest[i] ? dd : closest[i]
+                cand[i] = m
+                s += m
+            }
+            stats.dist += n
+            //首個候選必入選(bestRow < 0): 平方距離和溢位為Infinity而使 s < bestPot 不成立時, 仍須有有效之列(否則X[-d]讀出undefined而寫入NaN中心)
+            if (s < bestPot || bestRow < 0) {
+                bestPot = s
+                bestRow = row
+                bestCand.set(cand)
+            }
+        }
+        for (let t = 0; t < d; t++) {
+            C[c * d + t] = X[bestRow * d + t]
+        }
+        closest.set(bestCand)
     }
     return C
 }
@@ -378,4 +484,4 @@ function isPlainObject(o) {
 }
 
 
-export { seedU32, epochSeed, makeRng, permutation, initRows, pickRows, nextUp, nextDown, splitClusters, flattenMat, centerColumns, isPlainObject, MAX_ABS_VALUE }
+export { seedU32, epochSeed, makeRng, permutation, initRows, pickRows, initKMeansPP, nextUp, nextDown, splitClusters, flattenMat, centerColumns, isPlainObject, MAX_ABS_VALUE }

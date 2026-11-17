@@ -43,6 +43,7 @@ async function PCA(data, opt = {}) {
  * @param {Number} [opt.alpha0] 輸入初始EMA步長，須為大於0且不超過1之數值，僅於mode為'e-means'時生效，未提供(或非預期之輸入)時依論文縮放律決定
  * @param {String} [opt.batchLaw='auto'] 輸入批次大小之縮放律字串，可為'auto'、'throughput'、'quality'，僅於mode為'e-means'且未提供batchSize時生效，'auto'於維度不大於16時用'quality'(批次約小8倍、更新次數較多)，否則用'throughput'，預設'auto'
  * @param {Number} [opt.unusedThreshold] 輸入群復活門檻(質量低於平均質量之此比例之群視為未使用而以分裂其他群復活)，0為不復活，僅於mode為'e-means'時生效，未提供時維度不大於2為0、否則為0.1
+ * @param {String} [opt.init='random'] 輸入e-means之初始中心選取方式字串，可為'random'(論文作法，不放回隨機取k列)或'k-means++'(貪婪k-means++，每個新中心自2+floor(ln k)個依D^2抽取之候選中取使總平方距離最小者)，其餘值視為未提供，僅於mode為'e-means'時生效，預設'random'；'k-means++'於群分離明顯之混合資料(尤其資料列數不大或k不小)較不易落入局部解(評測見README)，代價是初始化需約2+ln k個走訪之距離計算(評測之預設nEpochs為5時，總CPU時間約為隨機初始化之2.5~4倍，約為評測對照組Lloyd k-means 25次走訪(隨機初始化)之0.65~0.85倍，詳見README)
  * @return {Promise} 回傳Promise，resolve回傳分群後結果物件，keys代表分群有使用到的欄位，ginds代表分群後的指標陣列，gltdt代表分群後的物件陣列，gmat代表分群後的數據陣列(usePCA為true時為PCA降維後數據，可例如取最左2欄代表x,y繪製二維分佈圖；usePCA為false時為原始數據)，reject回傳錯誤訊息；mode為'e-means'時，數據之元素須為有效數字(數字或數字字串，絕對值不大於1e100)，否則reject，訊息如invalid data[1][2]: must be a valid number(只帶位置不帶輸入值)，kNumber非1至數據長度之整數(數字或數字字串)時視為未提供，改用預設2，其他e-means選項非預期之輸入亦視為未提供；ginds依群編號排列且不含空群，nEpochs不小於1時各群之中心為該群成員之平均(論文演算法1收尾步驟)；usePCA為true時沿用既有之PCA前處理(其輸入檢測不屬e-means，例如數字字串須搭配usePCA為false)
  * @example
  *
@@ -58,6 +59,19 @@ async function PCA(data, opt = {}) {
  * let resE = await WCluster.cluster(mat, { mode: 'e-means', kNumber: 2, nCompNIPALS: 2, seed: 0 })
  * console.log(resE.ginds)
  * // => [ [ 1, 2, 3 ], [ 0 ] ]
+ *
+ * //init: e-means預設為隨機初始化(論文作法)，群分離明顯之資料可能落入局部解(此例seed為1時一群含兩個中心)；init為'k-means++'時改用貪婪k-means++
+ * let rows = []
+ * for (let i = 0; i < 300; i++) {
+ *     let g = i % 3
+ *     rows.push([g * 10 + (i % 7) * 0.1, g * -5 + (i % 11) * 0.05, (i % 13) * 0.02 + g])
+ * }
+ * let resR = await WCluster.cluster(rows, { mode: 'e-means', kNumber: 3, seed: 1 })
+ * console.log(resR.ginds.map((g) => g.length))
+ * // => [ 200, 48, 52 ]
+ * let resK = await WCluster.cluster(rows, { mode: 'e-means', kNumber: 3, seed: 1, init: 'k-means++' })
+ * console.log(resK.ginds.map((g) => g.length))
+ * // => [ 100, 100, 100 ]
  */
 async function cluster(data, opt = {}) {
     try {

@@ -100,6 +100,7 @@ async function WClusterCore(data, opt = {}) {
             alpha0: get(opt, 'alpha0', null),
             batchLaw: get(opt, 'batchLaw', null),
             unusedThreshold: get(opt, 'unusedThreshold', null),
+            init: get(opt, 'init', null),
         }
     }
 

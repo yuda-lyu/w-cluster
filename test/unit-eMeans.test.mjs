@@ -2,10 +2,11 @@
 import assert from 'assert'
 import { inspect } from 'util'
 import WCluster from '../src/WCluster.mjs'
-import { emeans, applyEma, resolveRecipe, roundPowerOfTwo, stepLaw, scheduledAlpha, epochRows, CONST } from '../src/WEmeans.mjs'
+import { emeans, applyEma, resolveRecipe, parseOpt, roundPowerOfTwo, stepLaw, scheduledAlpha, epochRows, CONST } from '../src/WEmeans.mjs'
 import { lloyd, initKMeansPP } from '../src/WClusterLloyd.mjs'
 import { newStats, centroidNorms, assignNearest, accumulateRows } from '../src/WClusterNearest.mjs'
 import { makeRng, permutation, initRows, pickRows, nextUp, nextDown, splitClusters, flattenMat, epochSeed, centerColumns, MAX_ABS_VALUE } from '../src/WClusterUtil.mjs'
+import * as WUtil from '../src/WClusterUtil.mjs'
 import { kmeans } from 'ml-kmeans'
 
 
@@ -651,6 +652,181 @@ describe('e-means: 演算法本體', function() {
 })
 
 
+//3群明顯分離之小資料(300列3欄, 第i列為[g*10+(i%7)*0.1, g*-5+(i%11)*0.05, (i%13)*0.02+g], g=i%3; 各欄各列之值逐筆相異), 預設之PCA前處理降為2維
+function makeSmall300() {
+    let rows = []
+    for (let i = 0; i < 300; i++) {
+        let g = i % 3
+        rows.push([g * 10 + (i % 7) * 0.1, g * -5 + (i % 11) * 0.05, (i % 13) * 0.02 + g])
+    }
+    return rows
+}
+
+
+//第j個中心是資料中之哪一列(找不到回傳-1)
+function rowIndexOf(X, n, d, C, j) {
+    for (let i = 0; i < n; i++) {
+        let same = true
+        for (let t = 0; t < d; t++) {
+            if (X[i * d + t] !== C[j * d + t]) {
+                same = false
+                break
+            }
+        }
+        if (same) {
+            return i
+        }
+    }
+    return -1
+}
+
+
+describe('e-means: init選項(預設隨機初始化, 可選貪婪k-means++初始化)', function() {
+
+    let ds = makeBlobs(12, 100, 8, 2, 1, 33) //n=1200, d=8, 12個群心
+    let k = 12
+    let initCost = (n, kk) => n + (kk - 1) * n * (2 + Math.floor(Math.log(kk))) //貪婪k-means++初始化之距離計算次數
+
+    it('parseOpt: init只接受random與k-means++(預設random); 其餘輸入(kmeans++、大小寫不同、前後空白、非字串、包裝物件、陣列)視為未給改用random(K3)', function() {
+        assert.strictEqual(parseOpt({}).init, 'random')
+        assert.strictEqual(parseOpt({ init: 'random' }).init, 'random')
+        assert.strictEqual(parseOpt({ init: 'k-means++' }).init, 'k-means++')
+        let bad = ['kmeans++', 'K-MEANS++', 'k-means++ ', ' random', 'Random', 'RANDOM', 'kpp', 'k-means', 'greedy', '', 0, 1, true, false, null, undefined, NaN, 10n, [], ['k-means++'], {}, new String('k-means++'), () => 'k-means++']
+        for (let v of bad) {
+            assert.strictEqual(parseOpt({ init: v }).init, 'random', `init=${inspect(v)}`)
+        }
+        //opt本身非一般物件者整份視為未給(規格V4)
+        assert.strictEqual(parseOpt(Object.assign(new Date(), { init: 'k-means++' })).init, 'random')
+        assert.strictEqual(parseOpt(Object.create({ init: 'k-means++' })).init, 'random')
+        assert.strictEqual(parseOpt(null).init, 'random')
+        assert.strictEqual(parseOpt(undefined).init, 'random')
+    })
+
+    it('resolveRecipe: recipe回報所用之init; 非預期之init與未給者之recipe完全相同(K3); init不影響批次律、步長律與走訪排程', function() {
+        let base = resolveRecipe(1000, 8, 16, {})
+        assert.strictEqual(base.init, 'random')
+        let kpp = resolveRecipe(1000, 8, 16, { init: 'k-means++' })
+        assert.strictEqual(kpp.init, 'k-means++')
+        assert.deepStrictEqual(Object.assign({}, kpp, { init: 'random' }), base)
+        for (let v of ['kmeans++', 'Random', 3, {}, null, true]) {
+            assert.deepStrictEqual(resolveRecipe(1000, 8, 16, { init: v }), base, `init=${inspect(v)}`)
+        }
+    })
+
+    it('未給init、init為random、以initRows(n,k,seed)指定初始列, 三者結果逐位相同(既有預設行為不變); 距離計算次數不含k-means++初始化', function() {
+        let { X, n, d } = ds
+        let a = emeans(X, n, d, k, { nEpochs: 2, seed: 5 })
+        let b = emeans(X, n, d, k, { nEpochs: 2, seed: 5, init: 'random' })
+        let c = emeans(X, n, d, k, { nEpochs: 2, seed: 5, initRows: initRows(n, k, 5) })
+        for (let r of [b, c]) {
+            assert.deepStrictEqual(Array.from(r.centroids), Array.from(a.centroids))
+            assert.deepStrictEqual(Array.from(r.labels), Array.from(a.labels))
+            assert.deepStrictEqual(Array.from(r.init), Array.from(a.init))
+            assert.strictEqual(r.stats.dist, a.stats.dist)
+        }
+        assert.strictEqual(a.recipe.init, 'random')
+        assert.strictEqual(a.stats.dist, (1200 + 1200) * k)
+    })
+
+    it('init=k-means++: 初始中心為initKMeansPP(同seed)之結果(與Lloyd對照組之k-means++為同一函數), 為資料中k個相異之列, 且異於同seed之隨機初始化', function() {
+        let { X, n, d } = ds
+        assert.strictEqual(WUtil.initKMeansPP, initKMeansPP) //單一擁有者: 工具模組擁有, Lloyd對照組匯出同一函數
+        let r = emeans(X, n, d, k, { nEpochs: 1, seed: 5, init: 'k-means++' })
+        let want = initKMeansPP(X, n, d, k, 5, newStats())
+        assert.deepStrictEqual(Array.from(r.init), Array.from(want))
+        assert.strictEqual(r.recipe.init, 'k-means++')
+        let picked = new Set()
+        for (let j = 0; j < k; j++) {
+            let i = rowIndexOf(X, n, d, r.init, j)
+            assert.ok(i >= 0, `center ${j} is not a data row`)
+            picked.add(i)
+        }
+        assert.strictEqual(picked.size, k)
+        let rnd = emeans(X, n, d, k, { nEpochs: 1, seed: 5 })
+        assert.notDeepStrictEqual(Array.from(r.init), Array.from(rnd.init))
+    })
+
+    it('init=k-means++: 論文其餘步驟不變(與以initCentroids傳入同一組初始中心之結果逐位相同), 距離計算次數多出之量恰為初始化之 n+(k-1)*n*(2+floor(ln k)); 外部傳入之stats亦累計', function() {
+        let { X, n, d } = ds
+        let C0 = initKMeansPP(X, n, d, k, 5, newStats())
+        let a = emeans(X, n, d, k, { nEpochs: 2.6, seed: 5, init: 'k-means++' })
+        let b = emeans(X, n, d, k, { nEpochs: 2.6, seed: 5, initCentroids: C0 })
+        assert.deepStrictEqual(Array.from(a.centroids), Array.from(b.centroids))
+        assert.deepStrictEqual(Array.from(a.labels), Array.from(b.labels))
+        assert.deepStrictEqual(a.epochObjective, b.epochObjective)
+        assert.strictEqual(a.nSplits, b.nSplits)
+        assert.strictEqual(a.stats.dist - b.stats.dist, initCost(n, k))
+        let st = newStats()
+        emeans(X, n, d, k, { nEpochs: 2.6, seed: 5, init: 'k-means++', stats: st })
+        assert.strictEqual(st.dist, a.stats.dist)
+    })
+
+    it('init=k-means++: 同seed可重現(逐位相同), 異seed之初始中心不同; 未給seed時不報錯且中心取自資料列', function() {
+        let { X, n, d } = ds
+        let a = emeans(X, n, d, k, { nEpochs: 1, seed: 7, init: 'k-means++' })
+        let b = emeans(X, n, d, k, { nEpochs: 1, seed: 7, init: 'k-means++' })
+        let c = emeans(X, n, d, k, { nEpochs: 1, seed: 8, init: 'k-means++' })
+        assert.deepStrictEqual(Array.from(a.centroids), Array.from(b.centroids))
+        assert.deepStrictEqual(Array.from(a.labels), Array.from(b.labels))
+        assert.notDeepStrictEqual(Array.from(a.init), Array.from(c.init))
+        let u = emeans(X, n, d, k, { nEpochs: 1, init: 'k-means++' })
+        for (let j = 0; j < k; j++) {
+            assert.ok(rowIndexOf(X, n, d, u.init, j) >= 0)
+        }
+    })
+
+    it('initCentroids與initRows優先於init: 以其起算, 距離計算次數不含k-means++初始化', function() {
+        let { X, n, d } = ds
+        let idx = Int32Array.from([100, 1, 250, 3, 4, 500, 6, 7, 999, 9, 10, 11])
+        let own = new Float64Array(k * d).fill(0.5)
+        let plain = emeans(X, n, d, k, { nEpochs: 1, seed: 5 })
+        let r1 = emeans(X, n, d, k, { nEpochs: 1, seed: 5, init: 'k-means++', initRows: idx })
+        assert.deepStrictEqual(Array.from(r1.init), Array.from(pickRows(X, d, idx)))
+        assert.strictEqual(r1.stats.dist, plain.stats.dist)
+        let r2 = emeans(X, n, d, k, { nEpochs: 1, seed: 5, init: 'k-means++', initRows: idx, initCentroids: own })
+        assert.deepStrictEqual(Array.from(r2.init), Array.from(own))
+        assert.strictEqual(r2.stats.dist, plain.stats.dist)
+    })
+
+    it('邊界(init=k-means++): n=1,k=1; k=1為全體平均; n=k時取遍全部列; 全部列相同; 結果皆為有限數且標籤有效', function() {
+        let one = emeans(Float64Array.from([3, 4]), 1, 2, 1, { init: 'k-means++', seed: 1 })
+        assert.deepStrictEqual(Array.from(one.centroids), [3, 4])
+        assert.deepStrictEqual(Array.from(one.labels), [0])
+
+        let { X, n, d } = ds
+        let k1 = emeans(X, n, d, 1, { nEpochs: 2, seed: 3, init: 'k-means++' })
+        let mu = new Float64Array(d)
+        for (let i = 0; i < n; i++) {
+            for (let t = 0; t < d; t++) {
+                mu[t] += X[i * d + t] / n
+            }
+        }
+        for (let t = 0; t < d; t++) {
+            assert.ok(Math.abs(k1.centroids[t] - mu[t]) < 1e-9)
+        }
+
+        let g = makeGaussFn(9)
+        let X5 = new Float64Array(5 * 2)
+        for (let i = 0; i < X5.length; i++) {
+            X5[i] = g()
+        }
+        let r5 = emeans(X5, 5, 2, 5, { nEpochs: 2, seed: 2, init: 'k-means++' })
+        let idxs = new Set()
+        for (let j = 0; j < 5; j++) {
+            idxs.add(rowIndexOf(X5, 5, 2, r5.init, j))
+        }
+        assert.strictEqual(idxs.size, 5)
+        assert.ok(!idxs.has(-1))
+
+        let same = new Float64Array(20 * 3).fill(7)
+        let rs = emeans(same, 20, 3, 4, { nEpochs: 2, seed: 4, init: 'k-means++' })
+        assert.ok(rs.centroids.every((v) => Number.isFinite(v)))
+        assert.ok(rs.labels.every((l) => l >= 0 && l < 4))
+    })
+
+})
+
+
 describe('Lloyd對照組A(與e-means共用核心、初始化與復活函數)', function() {
 
     let ds = makeBlobs(10, 150, 6, 2.5, 1, 91) //n=1500, d=6
@@ -738,6 +914,75 @@ describe('Lloyd對照組A(與e-means共用核心、初始化與復活函數)', f
         }
         assert.strictEqual(rowsSet.size, k)
         assert.strictEqual(stats.dist, n + (k - 1) * n * (2 + Math.floor(Math.log(k))))
+    })
+
+    it('initKMeansPP 依D^2抽取候選且取使總平方距離最小者: 三群(20/50/50點, 一維, 位於0、1、3)中, 第一個中心在0或1之群時第二個中心幾乎必在3之群(D^2加權抽樣約90%/候選2個取優約99%)', function() {
+        //各點之值逐筆相異(群內加1e-3*序號)
+        let pts = []
+        for (let i = 0; i < 20; i++) {
+            pts.push(0 + 1e-3 * (i + 1))
+        }
+        for (let i = 0; i < 50; i++) {
+            pts.push(1 + 1e-3 * (i + 1))
+        }
+        for (let i = 0; i < 50; i++) {
+            pts.push(3 + 1e-3 * (i + 1))
+        }
+        let X = Float64Array.from(pts)
+        let n = X.length
+        let eligible = 0
+        let hitFar = 0
+        for (let seed = 1; seed <= 200; seed++) {
+            let C = initKMeansPP(X, n, 1, 2, seed, newStats())
+            if (C[0] < 2) {
+                eligible += 1
+                if (C[1] > 2) {
+                    hitFar += 1
+                }
+            }
+        }
+        //第一個中心在0或1之群之機率為70/120(期望約117/200, 標準差約7), 在3之群之機率為50/120: 兩者皆須出現(首個中心確為隨機取列, 非固定取第0列)
+        assert.ok(eligible >= 80 && eligible <= 150, `eligible=${eligible}`)
+        assert.ok(hitFar >= eligible * 0.9, `hitFar=${hitFar}/${eligible}`)
+    })
+
+    it('initKMeansPP 全部點皆已與某中心重合(D^2和為0)時改為隨機取列: 資料[0,0,10,10]取3個中心, 第3個中心於0與10皆出現(各約一半), 不固定落在最後一列', function() {
+        let X = Float64Array.from([0, 0, 10, 10])
+        let at0 = 0
+        let at10 = 0
+        for (let seed = 1; seed <= 60; seed++) {
+            let C = initKMeansPP(X, 4, 1, 3, seed, newStats())
+            assert.ok(Array.from(C).every((v) => v === 0 || v === 10), `seed=${seed}`)
+            //前兩個中心已涵蓋0與10, 第3個中心來自隨機取列
+            if (C[2] === 0) {
+                at0 += 1
+            }
+            else {
+                at10 += 1
+            }
+        }
+        assert.ok(at0 >= 10 && at10 >= 10, `at0=${at0} at10=${at10}`)
+    })
+
+    it('initKMeansPP 平方距離和溢位為Infinity時(超出1e100之資料限制, 內部直接呼叫者)仍回傳取自資料之有限中心, 不寫入NaN', function() {
+        let X = Float64Array.from([0, 1e160, 2e160])
+        for (let seed = 1; seed <= 5; seed++) {
+            let C = initKMeansPP(X, 3, 1, 3, seed, newStats())
+            assert.ok(Array.from(C).every((v) => X.includes(v)), `seed=${seed} C=${Array.from(C)}`)
+        }
+    })
+
+    it('lloyd 之init為kmeans++時以initKMeansPP(同seed)為初始中心且距離計算次數含初始化; 未給時為隨機初始化(initRows)', function() {
+        let { X, n, d } = ds
+        let stats = newStats()
+        let r = lloyd(X, n, d, k, { nIter: 2, seed: 5, init: 'kmeans++', stats })
+        let C0 = initKMeansPP(X, n, d, k, 5, newStats())
+        assert.ok(Math.abs(r.objs[0] - n * mseOf(X, n, d, k, C0)) <= 1e-9 * r.objs[0])
+        assert.strictEqual(stats.dist, 2 * n * k + n + (k - 1) * n * (2 + Math.floor(Math.log(k))))
+        let r2 = lloyd(X, n, d, k, { nIter: 2, seed: 5 })
+        let C1 = pickRows(X, d, initRows(n, k, 5))
+        assert.ok(Math.abs(r2.objs[0] - n * mseOf(X, n, d, k, C1)) <= 1e-9 * r2.objs[0])
+        assert.strictEqual(r2.stats.dist, 2 * n * k)
     })
 
     it('品質下限: e-means(5個走訪)之訓練誤差不高於Lloyd 25次走訪之1.05倍(5個seed均值, 同資料同初始中心)', function() {
@@ -922,7 +1167,7 @@ describe('WCluster.cluster mode=e-means(API)', function() {
         let mat = [[40, 50, 60], [50, 70, 60], [80, 70, 90], [50, 60, 80]]
         for (let mode of ['k-means', 'k-medoids']) {
             let o = { mode, kNumber: 2, usePCA: false, seed: 0 }
-            for (let key of ['nEpochs', 'batchSize', 'alpha0', 'batchLaw', 'unusedThreshold']) {
+            for (let key of ['nEpochs', 'batchSize', 'alpha0', 'batchLaw', 'unusedThreshold', 'init']) {
                 Object.defineProperty(o, key, {
                     enumerable: true,
                     get() {
@@ -959,10 +1204,84 @@ describe('WCluster.cluster mode=e-means(API)', function() {
 
     it('K3: e-means之opt鍵非預期之輸入視為未給, 結果與不給該鍵相同', async function() {
         let base = await WCluster.cluster(b.rows, opt)
-        for (let o of [{ nEpochs: 'abc' }, { nEpochs: -2 }, { batchSize: 0 }, { alpha0: 5 }, { batchLaw: 'zzz' }, { unusedThreshold: 'x' }]) {
+        for (let o of [{ nEpochs: 'abc' }, { nEpochs: -2 }, { batchSize: 0 }, { alpha0: 5 }, { batchLaw: 'zzz' }, { unusedThreshold: 'x' }, { init: 'zzz' }]) {
             let r = await WCluster.cluster(b.rows, { ...opt, ...o })
             assert.deepStrictEqual(r, base, JSON.stringify(o))
         }
+    })
+
+    it('init: 3群明顯分離之小資料(300x3, 預設PCA前處理)上, 隨機初始化於部分seed落入局部解(群大小非100/100/100), k-means++於全部seed皆為100/100/100且可重現; 未給與random相同, 非預期之值視為未給(K3)', async function() {
+        let rows = makeSmall300()
+        let base = { mode: 'e-means', kNumber: 3, nCompNIPALS: 2 }
+        let sizesOf = async (extra, seed) => {
+            let r = await WCluster.cluster(rows, { ...base, seed, ...extra })
+            return r.ginds.map((g) => g.length)
+        }
+        let isGood = (s) => s.length === 3 && s.every((x) => x === 100)
+        let nRandomBad = 0
+        let nKppBad = 0
+        let seedBad = null
+        for (let seed = 1; seed <= 40; seed++) {
+            let a = await sizesOf({}, seed)
+            let b = await sizesOf({ init: 'random' }, seed)
+            let c = await sizesOf({ init: 'k-means++' }, seed)
+            assert.deepStrictEqual(b, a, `seed=${seed}`)
+            if (!isGood(a)) {
+                nRandomBad += 1
+                if (seedBad === null) {
+                    seedBad = seed
+                }
+            }
+            if (!isGood(c)) {
+                nKppBad += 1
+            }
+        }
+        //評測(toolg/evalEmeans/evalInitSmall.mjs, 200個seed)之隨機初始化約31%落入局部解; 此處前40個seed須有落入者, 使本案具鑑別力
+        assert.ok(nRandomBad >= 5, `random bad=${nRandomBad}/40`)
+        assert.strictEqual(nKppBad, 0)
+
+        //以隨機初始化落入局部解之seed對照
+        let o = { ...base, seed: seedBad }
+        let r0 = await WCluster.cluster(rows, o)
+        assert.ok(!isGood(r0.ginds.map((g) => g.length)))
+        for (let v of ['kmeans++', 'K-MEANS++', 'greedy', 3, true, {}, [], null, '']) {
+            assert.deepStrictEqual(await WCluster.cluster(rows, { ...o, init: v }), r0, `init=${inspect(v)}`)
+        }
+        assert.deepStrictEqual(await WCluster.cluster(rows, { ...o, init: 'random' }), r0)
+        let k1 = await WCluster.cluster(rows, { ...o, init: 'k-means++' })
+        let k2 = await WCluster.cluster(rows, { ...o, init: 'k-means++' })
+        assert.deepStrictEqual(k1, k2)
+        assert.ok(isGood(k1.ginds.map((g) => g.length)))
+        assert.notDeepStrictEqual(k1, r0)
+    })
+
+    it('init: 不做PCA(usePCA為false)時亦生效: 3群各100點(各維之值逐筆相異)於隨機初始化之局部解seed, k-means++得到各群100點且可重現; 原始數據不因置中而改變', async function() {
+        //300列3維: 第i列為[g*10+(i%7)*0.1, g*-5+(i%11)*0.05, (i%13)*0.02+g], g=i%3, 不經PCA直接於原始3維分群
+        let rows = makeSmall300()
+        let base = { mode: 'e-means', kNumber: 3, usePCA: false }
+        let sizes = async (extra, seed) => {
+            let r = await WCluster.cluster(rows, { ...base, seed, ...extra })
+            return r.ginds.map((g) => g.length)
+        }
+        let isGood = (s) => s.length === 3 && s.every((x) => x === 100)
+        let nKppBad = 0
+        let nDiff = 0
+        for (let seed = 1; seed <= 30; seed++) {
+            let a = await sizes({}, seed)
+            let c = await sizes({ init: 'k-means++' }, seed)
+            if (!isGood(c)) {
+                nKppBad += 1
+            }
+            if (JSON.stringify(a) !== JSON.stringify(c)) {
+                nDiff += 1
+            }
+        }
+        assert.strictEqual(nKppBad, 0)
+        assert.ok(nDiff >= 1, `init未改變任何seed之結果: nDiff=${nDiff}`)
+        let r1 = await WCluster.cluster(rows, { ...base, seed: 3, init: 'k-means++' })
+        let r2 = await WCluster.cluster(rows, { ...base, seed: 3, init: 'k-means++' })
+        assert.deepStrictEqual(r1, r2)
+        assert.deepStrictEqual(r1.gmat[0][0], rows[r1.ginds[0][0]]) //usePCA為false時gmat為原始數據
     })
 
     it('K4: 數字字串之數據轉換後使用, 結果與數值相同', async function() {

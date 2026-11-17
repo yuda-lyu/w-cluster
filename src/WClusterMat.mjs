@@ -152,7 +152,7 @@ async function kEmeans(data, kNumber, opt = {}) {
     seed = (seed !== null && seed !== undefined && iseint(seed)) ? Number(seed) : null
 
     let optE = { seed }
-    each(['nEpochs', 'batchSize', 'alpha0', 'batchLaw', 'unusedThreshold'], (key) => {
+    each(['nEpochs', 'batchSize', 'alpha0', 'batchLaw', 'unusedThreshold', 'init'], (key) => {
         optE[key] = get(opt, key, null)
     })
     let stats = newStats()
@@ -201,7 +201,8 @@ async function kEmeans(data, kNumber, opt = {}) {
 // @param {Number} [opt.unusedThreshold] 輸入e-means之群復活門檻，0為不復活，僅於mode為'e-means'時生效，未給時維度不大於2為0、否則為0.1
 // @param {Function} [opt.funDist] 輸入自訂距離函數，函數接收兩數據陣列(t1,t2)並回傳兩者距離數值，僅於mode為'k-medoids'時生效，未提供時底層採用歐氏(euclidean)距離
 // @param {String} [opt.useMethod='fasterPAM'] 輸入k-medoids分群後端字串，僅於mode為'k-medoids'時生效，'simple'為npm套件'k-medoids'(樸素PAM)，'fasterPAM'為內建./src/k-medoids之矩陣式FasterPAM(大數據較快)，預設'fasterPAM'
-// @param {Number} [opt.seed] 輸入k-means隨機初始化種子整數，僅於mode為'k-means'時生效，給定則分群結果可重現，未提供時為隨機初始化
+// @param {String} [opt.init='random'] 輸入e-means之初始化方式字串，可為'random'(論文作法，不放回隨機取k列)或'k-means++'(貪婪k-means++，群大時多花約2+ln k個走訪之距離計算，分離型混合資料較不易落入局部解)，其餘值視為未給，僅於mode為'e-means'時生效，預設'random'
+// @param {Number} [opt.seed] 輸入k-means隨機初始化種子整數，僅於mode為'k-means'或'e-means'時生效，給定則分群結果可重現，未提供時為隨機初始化
 // @return {Array} 回傳分群後各群所屬items的指標陣列
 async function WClusterMat(data, opt = {}) {
 
