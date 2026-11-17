@@ -5,9 +5,13 @@ import values from 'lodash-es/values.js'
 import isnum from 'wsemi/src/isnum.mjs'
 import isfun from 'wsemi/src/isfun.mjs'
 import cint from 'wsemi/src/cint.mjs'
+import iseint from 'wsemi/src/iseint.mjs'
 import kmeds from 'k-medoids'
 import { kmeans } from 'ml-kmeans'
 import { fasterpam, first_k } from './k-medoids/index.mjs'
+import { emeans } from './WEmeans.mjs'
+import { newStats, centroidNorms, assignNearest } from './WClusterNearest.mjs'
+import { flattenMat, centerColumns } from './WClusterUtil.mjs'
 
 
 function euclidean(a, b) {
@@ -126,10 +130,75 @@ async function kMeans(data, kNumber, opt = {}) {
 }
 
 
+async function kEmeans(data, kNumber, opt = {}) {
+    //e-means後端: 純JavaScript、僅用CPU、單執行緒之EMA小批次k-means(src/WEmeans.mjs), 回傳形狀同kMeans
+
+    //資料檢測與攤平(元素須為有效數字, 否則拋錯; 訊息不帶輸入值)
+    let { X, n, d } = flattenMat(data)
+
+    //置中: 距離以 |c|^2 - 2x·c 比較, 偏移量遠大於分散度時會抵銷有效位數(平移不改變點間距離, 故不影響分群定義)
+    centerColumns(X, n, d)
+
+    //kNumber須為1至n之整數(數字或數字字串, 轉換後之值才使用), 非預期之輸入視為未給, 改用預設2(僅1列時為1);
+    //優先取WClusterCore轉傳之原始輸入kNumberRaw(Core對所有mode先做isnum/cint轉換, 會把3.7、'0x3'當成可用之數字)
+    let kRaw = get(opt, 'kNumberRaw', undefined)
+    if (kRaw === undefined) {
+        kRaw = kNumber
+    }
+    let k = (kRaw !== null && kRaw !== undefined && iseint(kRaw, { min: 1, max: n })) ? Number(kRaw) : Math.min(2, n)
+
+    //seed須為整數, 非預期之輸入視為未給(隨機初始化)
+    let seed = get(opt, 'seed', null)
+    seed = (seed !== null && seed !== undefined && iseint(seed)) ? Number(seed) : null
+
+    let optE = { seed }
+    each(['nEpochs', 'batchSize', 'alpha0', 'batchLaw', 'unusedThreshold'], (key) => {
+        optE[key] = get(opt, key, null)
+    })
+    let stats = newStats()
+    optE.stats = stats
+    let r = emeans(X, n, d, k, optE)
+
+    //全部列皆須有所屬群: nEpochs<1時僅部分列被走訪, 其餘列依最終中心做最近中心指派
+    let labels = r.labels
+    let miss = []
+    for (let i = 0; i < n; i++) {
+        if (labels[i] < 0) {
+            miss.push(i)
+        }
+    }
+    if (miss.length > 0) {
+        let rows = Int32Array.from(miss)
+        let cn = centroidNorms(r.centroids, k, d, new Float64Array(k))
+        let lab = new Int32Array(rows.length)
+        assignNearest(X, d, rows, rows.length, r.centroids, k, cn, lab, null, stats)
+        for (let i = 0; i < rows.length; i++) {
+            labels[rows[i]] = lab[i]
+        }
+    }
+
+    //gs, 各群之原始index由小到大, 群依群編號由小到大排列, 空群不輸出(與kMeans一致)
+    let gs = {}
+    for (let i = 0; i < n; i++) {
+        let l = labels[i]
+        if (!gs[l]) {
+            gs[l] = []
+        }
+        gs[l].push(i)
+    }
+    return values(gs)
+}
+
+
 // @param {Array} data 輸入數據陣列
 // @param {Object} [opt={}] 輸入設定物件，預設{}
 // @param {Number} [opt.kNumber=2] 輸入指定分群數整數，不能超過數據的長度，預設2
-// @param {String} [opt.mode='k-medoids'] 輸入分群方法字串，可為'k-means'、'k-medoids'，k-means受初始隨機群中心影響較大，預設'k-medoids'
+// @param {String} [opt.mode='k-medoids'] 輸入分群方法字串，可為'k-means'、'k-medoids'、'e-means'，k-means受初始隨機群中心影響較大，預設'k-medoids'
+// @param {Number} [opt.nEpochs=5] 輸入e-means之走訪次數(可為小數)，僅於mode為'e-means'時生效，預設5
+// @param {Number} [opt.batchSize] 輸入e-means之批次大小，僅於mode為'e-means'時生效，未給時依論文縮放律決定
+// @param {Number} [opt.alpha0] 輸入e-means之初始EMA步長，僅於mode為'e-means'時生效，未給時依論文縮放律決定
+// @param {String} [opt.batchLaw='auto'] 輸入e-means之批次律字串，可為'auto'、'throughput'、'quality'，僅於mode為'e-means'時生效，預設'auto'
+// @param {Number} [opt.unusedThreshold] 輸入e-means之群復活門檻，0為不復活，僅於mode為'e-means'時生效，未給時維度不大於2為0、否則為0.1
 // @param {Function} [opt.funDist] 輸入自訂距離函數，函數接收兩數據陣列(t1,t2)並回傳兩者距離數值，僅於mode為'k-medoids'時生效，未提供時底層採用歐氏(euclidean)距離
 // @param {String} [opt.useMethod='fasterPAM'] 輸入k-medoids分群後端字串，僅於mode為'k-medoids'時生效，'simple'為npm套件'k-medoids'(樸素PAM)，'fasterPAM'為內建./src/k-medoids之矩陣式FasterPAM(大數據較快)，預設'fasterPAM'
 // @param {Number} [opt.seed] 輸入k-means隨機初始化種子整數，僅於mode為'k-means'時生效，給定則分群結果可重現，未提供時為隨機初始化
@@ -147,7 +216,7 @@ async function WClusterMat(data, opt = {}) {
 
     //mode
     let mode = get(opt, 'mode')
-    if (mode !== 'k-medoids' && mode !== 'k-means') {
+    if (mode !== 'k-medoids' && mode !== 'k-means' && mode !== 'e-means') {
         mode = 'k-medoids'
     }
 
@@ -166,6 +235,9 @@ async function WClusterMat(data, opt = {}) {
     }
     else if (mode === 'k-means') {
         rs = await kMeans(data, kNumber, { seed })
+    }
+    else if (mode === 'e-means') {
+        rs = await kEmeans(data, kNumber, opt)
     }
     else {
         throw new Error(`invalid mode[${mode}]`)

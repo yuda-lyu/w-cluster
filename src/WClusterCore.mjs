@@ -11,6 +11,7 @@ import iseobj from 'wsemi/src/iseobj.mjs'
 import cint from 'wsemi/src/cint.mjs'
 import WPCAMat from './WPCAMat.mjs'
 import WClusterMat from './WClusterMat.mjs'
+import { isPlainObject } from './WClusterUtil.mjs'
 
 
 function getEffKeys(ltdt) {
@@ -88,6 +89,20 @@ async function WClusterCore(data, opt = {}) {
     //useMethod
     let useMethod = get(opt, 'useMethod', 'fasterPAM')
 
+    //e-means專用選項(僅於mode為'e-means'且opt為一般物件時讀取, 其他mode不讀取以維持其行為不變; 由WClusterMat/WEmeans檢測, 非預期之輸入視為未給)
+    //kNumberRaw為kNumber之原始輸入(上方之isnum/cint轉換對所有mode沿用既有行為, e-means另依規格檢測原始輸入)
+    let optEmeans = {}
+    if (mode === 'e-means' && isPlainObject(opt)) {
+        optEmeans = {
+            kNumberRaw: get(opt, 'kNumber', undefined),
+            nEpochs: get(opt, 'nEpochs', null),
+            batchSize: get(opt, 'batchSize', null),
+            alpha0: get(opt, 'alpha0', null),
+            batchLaw: get(opt, 'batchLaw', null),
+            unusedThreshold: get(opt, 'unusedThreshold', null),
+        }
+    }
+
     let type = ''
     let n = size(data)
     let iobj = 0
@@ -132,7 +147,7 @@ async function WClusterCore(data, opt = {}) {
     }
 
     //WClusterMat
-    let ginds = await WClusterMat(pcad, { kNumber, mode, seed, funDist, useMethod })
+    let ginds = await WClusterMat(pcad, { kNumber, mode, seed, funDist, useMethod, ...optEmeans })
 
     //gmat
     let gmat = map(ginds, (inds) => {

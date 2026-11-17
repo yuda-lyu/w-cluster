@@ -1,0 +1,507 @@
+/**
+ * e-means: 以指數移動平均(EMA)做小批次更新之k-means(純JavaScript、僅用CPU、單執行緒)
+ *
+ * 演算法依據:
+ *   Bessa et al. (FAIR at Meta), "e-means: outperforming k-means (in one-tenth the epochs)", arXiv:2611.09501
+ *   https://arxiv.org/abs/2611.09501 (演算法1、式2~7、附錄H)
+ *
+ * 本檔為下列Faiss參考實作(NumpyEmeans)之JavaScript移植(結構、常數、縮放律係數、復活規則、收尾步驟皆依其而來; 差異見各處「與參考實作不同」註記):
+ *   https://github.com/facebookresearch/faiss/tree/main/contrib/e_means (e_means.py、base.py; 移植時對照之版本為commit c8f283867285af547db7a701c1b8dfa89631b3ea)
+ *
+ * 原著作權與授權聲明(依MIT授權保留):
+ *
+ *   Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ *   This source code is licensed under the MIT license found in the
+ *   LICENSE file in the root directory of this source tree.
+ *
+ *   MIT License
+ *
+ *   Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+ *
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+ *
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ *
+ * 與參考實作不同之處(皆為移植到JavaScript所致, 非演算法改動):
+ *   1. 全程使用Float64(參考實作為FP32), 故初始質量N_j取論文演算法1第3列之1e-10(參考實作因FP32改用2^-16, base.py:25)
+ *   2. 亂數產生器為mulberry32(參考實作為numpy RandomState), 給定seed時結果可重現, 但與參考實作之逐位結果不同
+ *   3. 距離計算為單執行緒之共用核心(src/WClusterNearest.mjs), 參考實作用faiss.knn
+ *   4. 不含: spherical模式、max_points_per_centroid、量化、IVF近似指派、分散式/GPU路徑、論文3.2節之慢速EMA收尾(參考e_means.py亦未實作)
+ */
+import isenum from 'wsemi/src/isenum.mjs'
+import iseint from 'wsemi/src/iseint.mjs'
+import { newStats, centroidNorms, assignNearest, accumulateRows } from './WClusterNearest.mjs'
+import { epochSeed, makeRng, permutation, initRows, pickRows, splitClusters, isPlainObject } from './WClusterUtil.mjs'
+
+
+//論文式5之餘弦排程下限比例epsilon(base.py:18)
+const ALPHA_MIN_FACTOR = 0.1
+
+//每隔幾次批次更新檢查一次群復活(論文演算法1第10列, base.py:21)
+const CHECK_UNUSED_EVERY = 5
+
+//初始質量N_j(論文演算法1第3列; 參考實作為2^-16, base.py:25)
+const INIT_USAGE = 1e-10
+
+//復活時捐贈群與子群之中心擾動比例delta(論文附錄H式8, base.py:28)
+const SPLIT_EPSILON = 1e-4
+
+//復活門檻tau: N_j < tau*mean(N)視為未使用(論文3.1節, base.py:31)
+const UNUSED_THRESHOLD = 0.1
+
+//維度不大於此值時預設不復活(參考實作e_means/base.py:38, 其註解載明於2維資料復活會增加測試誤差)
+const NO_REVIVAL_MAX_D = 2
+
+//batchLaw='auto'時, 維度不大於此值用quality律, 否則用throughput律(base.py:46)
+const AUTO_QUALITY_MAX_D = 16
+
+//批次律 B = C_B * k^b_k * n^b_n * T^b_T, 依序為(C_B, b_k, b_n, b_T)(論文式7與表2, base.py:54-57); quality為throughput之1/8係數
+const BATCH_LAWS = {
+    throughput: [0.035134, 0.134749, 0.876473, 0.813344],
+    quality: [0.00439175, 0.134749, 0.876473, 0.813344],
+}
+
+//步長律 alpha0 = C_a * k^a_k * B^a_B * n^a_n * T^a_T, 依序為(C_a, a_k, a_B, a_n, a_T)(論文式6與表2, base.py:64)
+const ALPHA_LAW = [0.8244, -0.4617, 0.9003, -0.4498, -0.1057]
+
+const ALPHA0_MIN = 1e-4 //步長律結果夾至[1e-4, 1](base.py:86)
+
+const BATCH_LAW_NAMES = ['auto', 'throughput', 'quality']
+
+const DEFAULT_EPOCHS = 5 //參考實作預設nepochs=5(e_means.py:165)
+
+
+/**
+ * 將正數四捨五入至最近之2的冪(比例意義下最近, 即幾何平均為界)
+ *
+ * 對照: base.py:67-73 _round_power_of_two
+ *
+ * @param {Number} value 輸入正數
+ * @returns {Number} 回傳2的冪(至少為1)
+ */
+function roundPowerOfTwo(value) {
+    if (value <= 1) {
+        return 1
+    }
+    let low = Math.pow(2, Math.floor(Math.log2(value)))
+    let high = 2 * low
+    return value / low < high / value ? low : high
+}
+
+
+/**
+ * 步長律: 由批次大小等推得餘弦排程之初始EMA步長alpha0
+ *
+ * 對照: 論文式6、表2; base.py:76-86 _step_law
+ *
+ * @param {Number} n 輸入資料列數
+ * @param {Number} k 輸入群數
+ * @param {Number} nEpochs 輸入走訪次數T
+ * @param {Number} batchSize 輸入批次大小B
+ * @returns {Number} 回傳alpha0, 夾於[1e-4, 1]
+ */
+function stepLaw(n, k, nEpochs, batchSize) {
+    let [c, ak, ab, an, at] = ALPHA_LAW
+    let a = c * Math.pow(k, ak) * Math.pow(batchSize, ab) * Math.pow(n, an) * Math.pow(nEpochs, at)
+    return Math.min(Math.max(a, ALPHA0_MIN), 1)
+}
+
+
+/**
+ * 餘弦排程之EMA步長: 自alpha0降至0.1*alpha0
+ *
+ * 對照: 論文式5; base.py:174-178 _scheduled_alpha
+ *
+ * @param {Number} alpha0 輸入初始步長
+ * @param {Number} step 輸入第幾次更新(自0起)
+ * @param {Number} totalSteps 輸入總更新次數M
+ * @returns {Number} 回傳該次更新之步長alpha(t)
+ */
+function scheduledAlpha(alpha0, step, totalSteps) {
+    let fraction = Math.min(step, totalSteps) / Math.max(1, totalSteps)
+    let cosine = 0.5 * (1 + Math.cos(Math.PI * fraction))
+    return alpha0 * (ALPHA_MIN_FACTOR + (1 - ALPHA_MIN_FACTOR) * cosine)
+}
+
+
+/**
+ * 各走訪(epoch)所處理之列數: 整數次走訪、四捨五入之小數部分走訪、最後一次完整走訪(收尾用)
+ *
+ * 對照: base.py:156-166 _epoch_rows; 與其相同, 小數部分以ties-to-even捨入
+ *
+ * @param {Number} n 輸入資料列數
+ * @param {Number} nEpochs 輸入走訪次數T(可為小數)
+ * @returns {Array} 回傳各走訪之列數陣列
+ */
+function epochRows(n, nEpochs) {
+    let whole = Math.floor(nEpochs)
+    let remainder = roundHalfEven((nEpochs - whole) * n)
+    if (whole === 0) {
+        return [remainder]
+    }
+    let r = []
+    for (let i = 0; i < whole - 1; i++) {
+        r.push(n)
+    }
+    if (remainder > 0) {
+        r.push(remainder)
+    }
+    r.push(n)
+    return r
+}
+
+
+function roundHalfEven(x) {
+    let f = Math.floor(x)
+    let diff = x - f
+    if (diff < 0.5) {
+        return f
+    }
+    if (diff > 0.5) {
+        return f + 1
+    }
+    return f % 2 === 0 ? f : f + 1
+}
+
+
+/**
+ * 解析批次律名稱: 'auto'時依維度擇定
+ *
+ * 對照: base.py:89-99 _resolve_batch_law
+ *
+ * @param {String} batchLaw 輸入'auto'、'throughput'或'quality'
+ * @param {Number} d 輸入維度
+ * @returns {Object} 回傳{ law, reason }
+ */
+function resolveBatchLaw(batchLaw, d) {
+    if (batchLaw !== 'auto') {
+        return { law: batchLaw, reason: 'requested' }
+    }
+    if (d <= AUTO_QUALITY_MAX_D) {
+        return { law: 'quality', reason: `d <= ${AUTO_QUALITY_MAX_D}` }
+    }
+    return { law: 'throughput', reason: `d > ${AUTO_QUALITY_MAX_D}` }
+}
+
+
+/**
+ * 以opt之數值鍵取值: 未給(undefined/null)或非預期(不符chk之有效數字, 含超出範圍)皆取預設; 有效時以轉換後之數值為準
+ */
+function optNum(v, def, chk) {
+    if (v === undefined || v === null) {
+        return def
+    }
+    return isenum(v, chk) ? Number(v) : def
+}
+
+
+function optInt(v, def, chk) {
+    if (v === undefined || v === null) {
+        return def
+    }
+    return iseint(v, chk) ? Number(v) : def
+}
+
+
+/**
+ * 解析並檢測e-means之選項(輸入規格K3: 非預期之輸入視為未給, 改用預設, 不報錯)
+ *
+ * @param {Object} opt 輸入設定物件
+ * @returns {Object} 回傳已解析之選項{ nEpochs, batchSize, alpha0, batchLaw, unusedThreshold, seed }, 未給者batchSize、alpha0、unusedThreshold為null(由規則或維度決定), seed為null(隨機)
+ */
+function parseOpt(opt) {
+    //opt本身須為一般物件(原型為Object.prototype或null), 其他(陣列、Date、包裝物件、類別實例)整份視為未給(規格V4)
+    let o = isPlainObject(opt) ? opt : {}
+    let batchLaw = BATCH_LAW_NAMES.includes(o.batchLaw) ? o.batchLaw : 'auto'
+    return {
+        nEpochs: optNum(o.nEpochs, DEFAULT_EPOCHS, { gt: 0, max: 1000 }),
+        batchSize: optInt(o.batchSize, null, { min: 1 }),
+        alpha0: optNum(o.alpha0, null, { gt: 0, max: 1 }),
+        batchLaw,
+        unusedThreshold: optNum(o.unusedThreshold, null, { min: 0 }),
+        seed: optInt(o.seed, null),
+    }
+}
+
+
+/**
+ * 決定一次執行之配方(批次大小B、初始步長alpha0、各走訪列數、總更新次數、復活門檻等)
+ *
+ * 對照: base.py:133-153 _resolve_recipe、base.py:291-352 _resolve_run_recipe、base.py:102-109 _resolve_unused_threshold
+ *   - B未給: 依批次律 B = round2(C_B*k^b_k*n^b_n*T^b_T); throughput律再取min(B, round2(n/2)), quality律取min(B, floor(n/2)); 最後夾於[1, n]
+ *   - B有給: B = min(B, n); alpha0未給: 依步長律
+ *
+ * @param {Number} n 輸入資料列數
+ * @param {Number} d 輸入維度
+ * @param {Number} k 輸入群數
+ * @param {Object} [opt={}] 輸入設定物件，鍵同emeans之opt，非預期輸入視為未給
+ * @returns {Object} 回傳配方物件
+ */
+function resolveRecipe(n, d, k, opt = {}) {
+    let o = parseOpt(opt)
+    let nEpochs = o.nEpochs
+    let { law, reason } = resolveBatchLaw(o.batchLaw, d)
+
+    let batchSize
+    if (o.batchSize === null) {
+        let [c, bk, bn, bt] = BATCH_LAWS[law]
+        let raw = c * Math.pow(k, bk) * Math.pow(n, bn) * Math.pow(nEpochs, bt)
+        batchSize = roundPowerOfTwo(raw)
+        if (law === 'throughput') {
+            batchSize = Math.min(batchSize, roundPowerOfTwo(n / 2))
+        }
+        else {
+            batchSize = Math.min(batchSize, Math.floor(n / 2))
+        }
+        batchSize = Math.max(1, Math.min(batchSize, n))
+    }
+    else {
+        batchSize = Math.max(1, Math.min(o.batchSize, n))
+    }
+    let alpha0 = o.alpha0 === null ? stepLaw(n, k, nEpochs, batchSize) : o.alpha0
+
+    let rows = epochRows(n, nEpochs)
+    let epochSteps = rows.map((r) => Math.ceil(r / batchSize))
+    let totalSteps = epochSteps.reduce((a, b) => a + b, 0)
+
+    let unusedThreshold = o.unusedThreshold === null ? (d <= NO_REVIVAL_MAX_D ? 0 : UNUSED_THRESHOLD) : o.unusedThreshold
+
+    return {
+        n,
+        d,
+        k,
+        nEpochs,
+        batchLaw: o.batchSize === null ? law : null,
+        batchLawReason: o.batchSize === null ? reason : null,
+        batchSize,
+        alpha0,
+        epochRows: rows,
+        epochSteps,
+        totalSteps,
+        unusedThreshold,
+        seed: o.seed,
+    }
+}
+
+
+/**
+ * 以一個批次之統計對質量與中心做一次EMA更新(論文式2~4, 以質量N_j與中心c_j=S_j/N_j表示)
+ *
+ * 全部群之質量先衰減為(1-alpha)*N_j; 批次中有被指派之群(n_j>0)再得 N_j <- N_j + alpha*n_j, 中心朝該群批次平均移動 weight = alpha*n_j/N_j 之比例;
+ * 未被指派之群中心不動(其質量衰減, 對應S_j與N_j同比衰減使比值不變)
+ *
+ * 對照: 參考實作e_means.py:456-505 _apply_statistics; alpha為1時不衰減舊質量, 被指派之群質量改為alpha*n_j(replace_usage, e_means.py:489-496)
+ *
+ * @param {Float64Array} C 輸入輸出中心(k*d), 就地更新
+ * @param {Float64Array} usage 輸入輸出質量N_j(k), 就地更新
+ * @param {Float64Array} sums 輸入該批次各群之和s_j(k*d)
+ * @param {Float64Array} counts 輸入該批次各群之個數n_j(k)
+ * @param {Number} k 輸入群數
+ * @param {Number} d 輸入維度
+ * @param {Number} alpha 輸入此次更新之步長(0,1]
+ */
+function applyEma(C, usage, sums, counts, k, d, alpha) {
+    let replace = alpha === 1
+    if (!replace) {
+        let decay = 1 - alpha
+        for (let j = 0; j < k; j++) {
+            usage[j] *= decay
+        }
+    }
+    for (let j = 0; j < k; j++) {
+        let nj = counts[j]
+        if (nj > 0) {
+            let mass = (replace ? 0 : usage[j]) + alpha * nj
+            let weight = alpha * nj / mass
+            let o = j * d
+            if (weight === 1) {
+                for (let t = 0; t < d; t++) {
+                    C[o + t] = sums[o + t] / nj
+                }
+            }
+            else {
+                for (let t = 0; t < d; t++) {
+                    C[o + t] += weight * (sums[o + t] / nj - C[o + t])
+                }
+            }
+            usage[j] = mass
+        }
+    }
+}
+
+
+/**
+ * e-means分群(typed array版, 內部用; 輸入檢測由呼叫端負責)
+ *
+ * 演算法(論文演算法1): 自資料不放回隨機取k列為初始中心; 每個走訪對全部列洗牌後依序切為批次; 每批次以目前中心做最近中心指派,
+ * 以個數n_j與和s_j對質量N_j與中心做EMA更新(步長依餘弦排程), 每5次更新檢查一次並復活未使用之群; 最後以最後一個走訪中各群被指派之點之平均作為收尾中心
+ *
+ * N_j與中心c_j = S_j/N_j之更新(參考實作base/e_means.py:456-505, 與論文式2~4等價):
+ *   N_new = (1-alpha)*N_j + alpha*n_j ; c_new = c_j + (alpha*n_j/N_new)*(s_j/n_j - c_j) ; 未被指派之群中心不動而質量衰減
+ *
+ * @param {Float64Array} X 輸入資料(列優先, 長度n*d)
+ * @param {Number} n 輸入資料列數
+ * @param {Number} d 輸入維度
+ * @param {Number} k 輸入群數(1至n之整數)
+ * @param {Object} [opt={}] 輸入設定物件，非預期之輸入視為未給
+ * @param {Number} [opt.nEpochs=5] 輸入走訪次數T，可為小數，須為大於0且不超過1000之數值，預設5
+ * @param {Number} [opt.batchSize] 輸入批次大小B，須為正整數，未給時依批次律決定
+ * @param {Number} [opt.alpha0] 輸入初始EMA步長，須為(0,1]之數值，未給時依步長律決定
+ * @param {String} [opt.batchLaw='auto'] 輸入批次律字串，可為'auto'、'throughput'、'quality'，'auto'於維度不大於16時用quality否則用throughput，預設'auto'
+ * @param {Number} [opt.unusedThreshold] 輸入群復活門檻tau，須為不小於0之數值，0為不復活，未給時維度不大於2為0、否則為0.1
+ * @param {Number} [opt.seed] 輸入整數seed，給定則結果可重現，未給時隨機
+ * @param {Int32Array} [opt.initRows] 輸入初始中心所取之列索引(長度k)，未給時依seed不放回隨機取(與Lloyd對照組共用initRows之結果)
+ * @param {Float64Array} [opt.initCentroids] 輸入初始中心(k*d)，給定則優先於initRows
+ * @param {Object} [opt.stats] 輸入計數器(newStats()回傳), 未給時內部自建; 距離計算次數累加於stats.dist
+ * @returns {Object} 回傳物件，centroids為收尾後之中心(k*d)，labels為最後一個走訪各列被指派之群(長度n，未被走訪之列為-1)，recipe為所用配方，epochObjective為各走訪移動中之平方距離和，nSplits為復活之群總數，stats為計數器，init為所用之初始中心之複本(k*d)
+ */
+function emeans(X, n, d, k, opt = {}) {
+    if (!(X instanceof Float64Array) || X.length !== n * d) {
+        throw new Error('invalid X: must be a Float64Array of length n*d')
+    }
+    if (!Number.isInteger(k) || k < 1 || k > n) {
+        throw new Error('invalid k: must be an integer from 1 to n')
+    }
+    let recipe = resolveRecipe(n, d, k, opt)
+    let stats = (opt && opt.stats) ? opt.stats : newStats()
+    let seed = recipe.seed === null ? Math.floor(Math.random() * 4294967296) : recipe.seed
+    recipe.seed = seed
+
+    let B = recipe.batchSize
+    let tau = recipe.unusedThreshold
+    let nEpoch = recipe.epochRows.length
+
+    //初始中心與質量(演算法1第2~3列)
+    let C
+    if (opt && opt.initCentroids instanceof Float64Array && opt.initCentroids.length === k * d) {
+        C = opt.initCentroids.slice()
+    }
+    else {
+        let initIdx = (opt && opt.initRows instanceof Int32Array && opt.initRows.length === k) ? opt.initRows : initRows(n, k, seed)
+        C = pickRows(X, d, initIdx)
+    }
+    let init = C.slice()
+    let usage = new Float64Array(k).fill(INIT_USAGE)
+    let cn = new Float64Array(k)
+    let sums = new Float64Array(k * d)
+    let counts = new Float64Array(k)
+    let passSums = new Float64Array(k * d)
+    let passCounts = new Float64Array(k)
+    let bLabel = new Int32Array(B)
+    let labels = new Int32Array(n).fill(-1)
+    let epochObjective = []
+    let splitRng = makeRng(epochSeed(seed, 0x5eed))
+    let unused = new Uint8Array(k)
+    let donor = new Uint8Array(k)
+    let nSplits = 0
+    let step = 0
+
+    //各中心之平方範數: 之後只在中心被改動時(被指派之群、復活之群)更新, 使每批次之額外成本與 k*d 無關
+    centroidNorms(C, k, d, cn)
+
+    for (let e = 0; e < nEpoch; e++) {
+        let isLast = e === nEpoch - 1
+        let rowsE = recipe.epochRows[e]
+        let order = permutation(n, makeRng(epochSeed(seed, e)))
+        let objE = 0
+        for (let begin = 0; begin < rowsE; begin += B) {
+            let end = Math.min(begin + B, rowsE)
+            let nb = end - begin
+            let rowsView = order.subarray(begin, end)
+
+            //指派(演算法1第7列)與批次統計(第8列)
+            objE += assignNearest(X, d, rowsView, nb, C, k, cn, bLabel, null, stats)
+            accumulateRows(X, d, rowsView, nb, bLabel, sums, counts)
+            if (isLast) {
+                //最後一個走訪: 記錄各列之標籤, 並累計各群之和與個數供收尾
+                for (let i = 0; i < nb; i++) {
+                    labels[rowsView[i]] = bLabel[i]
+                }
+                for (let j = 0; j < k; j++) {
+                    let nj = counts[j]
+                    if (nj > 0) {
+                        passCounts[j] += nj
+                        let o = j * d
+                        for (let t = 0; t < d; t++) {
+                            passSums[o + t] += sums[o + t]
+                        }
+                    }
+                }
+            }
+
+            //EMA更新(第6、9列): 步長依式5
+            applyEma(C, usage, sums, counts, k, d, scheduledAlpha(recipe.alpha0, step, recipe.totalSteps))
+
+            //被指派之群: 中心已變, 更新其平方範數; 並清除其批次統計
+            for (let j = 0; j < k; j++) {
+                if (counts[j] > 0) {
+                    let o = j * d
+                    let s = 0
+                    for (let t = 0; t < d; t++) {
+                        let v = C[o + t]
+                        s += v * v
+                        sums[o + t] = 0
+                    }
+                    cn[j] = s
+                    counts[j] = 0
+                }
+            }
+
+            //群復活(第10~11列): 每CHECK_UNUSED_EVERY次更新檢查一次, 對照e_means.py:261-300與base.py:277-286
+            if ((step + 1) % CHECK_UNUSED_EVERY === 0 && tau > 0) {
+                let total = 0
+                for (let j = 0; j < k; j++) {
+                    total += usage[j]
+                }
+                let threshold = total * tau / k
+                for (let j = 0; j < k; j++) {
+                    let u = usage[j] < threshold
+                    unused[j] = u ? 1 : 0
+                    donor[j] = (!u && usage[j] > 0) ? 1 : 0
+                }
+                let ns = splitClusters(C, d, k, usage, unused, donor, usage, splitRng, SPLIT_EPSILON)
+                if (ns > 0) {
+                    nSplits += ns
+                    centroidNorms(C, k, d, cn)
+                }
+            }
+            step += 1
+        }
+        epochObjective.push(objE)
+    }
+
+    //收尾(第12列): 有被指派之群取最後一個走訪中被指派之點之平均, 其餘維持EMA位置(e_means.py:531-564)
+    for (let j = 0; j < k; j++) {
+        if (passCounts[j] > 0) {
+            let o = j * d
+            for (let t = 0; t < d; t++) {
+                C[o + t] = passSums[o + t] / passCounts[j]
+            }
+        }
+    }
+
+    return { centroids: C, labels, recipe, epochObjective, nSplits, stats, init }
+}
+
+
+//論文與參考實作所定之常數(供測試對照)
+const CONST = { ALPHA_MIN_FACTOR, CHECK_UNUSED_EVERY, INIT_USAGE, SPLIT_EPSILON, UNUSED_THRESHOLD, NO_REVIVAL_MAX_D, AUTO_QUALITY_MAX_D, BATCH_LAWS, ALPHA_LAW, ALPHA0_MIN, DEFAULT_EPOCHS }
+
+
+export { emeans, applyEma, resolveRecipe, parseOpt, roundPowerOfTwo, stepLaw, scheduledAlpha, epochRows, CONST }
+export default emeans
