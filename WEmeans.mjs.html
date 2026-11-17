@@ -89,11 +89,14 @@
  *   2. 亂數產生器為mulberry32(參考實作為numpy RandomState), 給定seed時結果可重現, 但與參考實作之逐位結果不同
  *   3. 距離計算為單執行緒之共用核心(src/WClusterNearest.mjs), 參考實作用faiss.knn
  *   4. 不含: spherical模式、max_points_per_centroid、量化、IVF近似指派、分散式/GPU路徑、論文3.2節之慢速EMA收尾(參考e_means.py亦未實作)
+ *
+ * 本庫新增之選項(非論文與參考實作之作法, 預設不啟用): opt.init為'k-means++'時, 初始中心改由貪婪k-means++選取(WClusterUtil.initKMeansPP, 與Lloyd對照組共用), 其餘步驟不變;
+ * 論文為隨機初始化(預設'random'). 評測見 toolg/evalEmeans/REPORT.md〈e-means之初始化〉
  */
 import isenum from 'wsemi/src/isenum.mjs'
 import iseint from 'wsemi/src/iseint.mjs'
 import { newStats, centroidNorms, assignNearest, accumulateRows } from './WClusterNearest.mjs'
-import { epochSeed, makeRng, permutation, initRows, pickRows, splitClusters, isPlainObject } from './WClusterUtil.mjs'
+import { epochSeed, makeRng, permutation, initRows, pickRows, initKMeansPP, splitClusters, isPlainObject } from './WClusterUtil.mjs'
 
 
 //論文式5之餘弦排程下限比例epsilon(base.py:18)
@@ -129,6 +132,9 @@ const ALPHA_LAW = [0.8244, -0.4617, 0.9003, -0.4498, -0.1057]
 const ALPHA0_MIN = 1e-4 //步長律結果夾至[1e-4, 1](base.py:86)
 
 const BATCH_LAW_NAMES = ['auto', 'throughput', 'quality']
+
+//初始化方式: 'random'為論文作法(不放回隨機取k列, 預設), 'k-means++'為貪婪k-means++(本庫新增之選項)
+const INIT_NAMES = ['random', 'k-means++']
 
 const DEFAULT_EPOCHS = 5 //參考實作預設nepochs=5(e_means.py:165)
 
@@ -269,7 +275,7 @@ function optInt(v, def, chk) {
  * 解析並檢測e-means之選項(輸入規格K3: 非預期之輸入視為未給, 改用預設, 不報錯)
  *
  * @param {Object} opt 輸入設定物件
- * @returns {Object} 回傳已解析之選項{ nEpochs, batchSize, alpha0, batchLaw, unusedThreshold, seed }, 未給者batchSize、alpha0、unusedThreshold為null(由規則或維度決定), seed為null(隨機)
+ * @returns {Object} 回傳已解析之選項{ nEpochs, batchSize, alpha0, batchLaw, unusedThreshold, seed, init }, 未給者batchSize、alpha0、unusedThreshold為null(由規則或維度決定), seed為null(隨機), init預設'random'
  */
 function parseOpt(opt) {
     //opt本身須為一般物件(原型為Object.prototype或null), 其他(陣列、Date、包裝物件、類別實例)整份視為未給(規格V4)
@@ -282,6 +288,7 @@ function parseOpt(opt) {
         batchLaw,
         unusedThreshold: optNum(o.unusedThreshold, null, { min: 0 }),
         seed: optInt(o.seed, null),
+        init: INIT_NAMES.includes(o.init) ? o.init : 'random', //非'random'與'k-means++'者視為未給(K3)
     }
 }
 
@@ -342,6 +349,7 @@ function resolveRecipe(n, d, k, opt = {}) {
         totalSteps,
         unusedThreshold,
         seed: o.seed,
+        init: o.init,
     }
 }
 
@@ -395,7 +403,7 @@ function applyEma(C, usage, sums, counts, k, d, alpha) {
 /**
  * e-means分群(typed array版, 內部用; 輸入檢測由呼叫端負責)
  *
- * 演算法(論文演算法1): 自資料不放回隨機取k列為初始中心; 每個走訪對全部列洗牌後依序切為批次; 每批次以目前中心做最近中心指派,
+ * 演算法(論文演算法1): 自資料不放回隨機取k列為初始中心(opt.init為'k-means++'時改以貪婪k-means++選取); 每個走訪對全部列洗牌後依序切為批次; 每批次以目前中心做最近中心指派,
  * 以個數n_j與和s_j對質量N_j與中心做EMA更新(步長依餘弦排程), 每5次更新檢查一次並復活未使用之群; 最後以最後一個走訪中各群被指派之點之平均作為收尾中心
  *
  * N_j與中心c_j = S_j/N_j之更新(參考實作base/e_means.py:456-505, 與論文式2~4等價):
@@ -412,10 +420,11 @@ function applyEma(C, usage, sums, counts, k, d, alpha) {
  * @param {String} [opt.batchLaw='auto'] 輸入批次律字串，可為'auto'、'throughput'、'quality'，'auto'於維度不大於16時用quality否則用throughput，預設'auto'
  * @param {Number} [opt.unusedThreshold] 輸入群復活門檻tau，須為不小於0之數值，0為不復活，未給時維度不大於2為0、否則為0.1
  * @param {Number} [opt.seed] 輸入整數seed，給定則結果可重現，未給時隨機
+ * @param {String} [opt.init='random'] 輸入初始化方式字串，可為'random'(論文作法，不放回隨機取k列)或'k-means++'(貪婪k-means++，本庫新增之選項，初始化之距離計算次數累加於stats.dist)，其餘值視為未給，預設'random'；給了initRows或initCentroids時以其為準
  * @param {Int32Array} [opt.initRows] 輸入初始中心所取之列索引(長度k)，未給時依seed不放回隨機取(與Lloyd對照組共用initRows之結果)
  * @param {Float64Array} [opt.initCentroids] 輸入初始中心(k*d)，給定則優先於initRows
  * @param {Object} [opt.stats] 輸入計數器(newStats()回傳), 未給時內部自建; 距離計算次數累加於stats.dist
- * @returns {Object} 回傳物件，centroids為收尾後之中心(k*d)，labels為最後一個走訪各列被指派之群(長度n，未被走訪之列為-1)，recipe為所用配方，epochObjective為各走訪移動中之平方距離和，nSplits為復活之群總數，stats為計數器，init為所用之初始中心之複本(k*d)
+ * @returns {Object} 回傳物件，centroids為收尾後之中心(k*d)，labels為最後一個走訪各列被指派之群(長度n，未被走訪之列為-1)，recipe為所用配方(recipe.init為opt.init解析後之值；另給了initRows或initCentroids時其優先，實際之初始中心以回傳之init欄為準)，epochObjective為各走訪移動中之平方距離和，nSplits為復活之群總數，stats為計數器，init為所用之初始中心之複本(k*d)
  */
 function emeans(X, n, d, k, opt = {}) {
     if (!(X instanceof Float64Array) || X.length !== n * d) {
@@ -438,9 +447,15 @@ function emeans(X, n, d, k, opt = {}) {
     if (opt &amp;&amp; opt.initCentroids instanceof Float64Array &amp;&amp; opt.initCentroids.length === k * d) {
         C = opt.initCentroids.slice()
     }
+    else if (opt &amp;&amp; opt.initRows instanceof Int32Array &amp;&amp; opt.initRows.length === k) {
+        C = pickRows(X, d, opt.initRows)
+    }
+    else if (recipe.init === 'k-means++') {
+        //貪婪k-means++(本庫新增之選項, 非論文作法): 與Lloyd對照組同一函數同一seed, 其距離計算次數累加於stats.dist(計入總成本)
+        C = initKMeansPP(X, n, d, k, seed, stats)
+    }
     else {
-        let initIdx = (opt &amp;&amp; opt.initRows instanceof Int32Array &amp;&amp; opt.initRows.length === k) ? opt.initRows : initRows(n, k, seed)
-        C = pickRows(X, d, initIdx)
+        C = pickRows(X, d, initRows(n, k, seed))
     }
     let init = C.slice()
     let usage = new Float64Array(k).fill(INIT_USAGE)
@@ -566,7 +581,7 @@ export default emeans
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Nov 17 2026 11:35:58 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Nov 17 2026 13:32:48 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>
