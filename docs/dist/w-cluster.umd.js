@@ -1,5 +1,5 @@
 /*!
- * w-cluster v1.0.69
+ * w-cluster v1.0.70
  * (c) 2018-2021 yuda-lyu(semisphere)
  * Released under the MIT License.
  */
